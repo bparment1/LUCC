@@ -5,7 +5,7 @@
 #The output also provides a textfile (ending with "_cluster_max.txt"). It containst the number of cluster for each distance.
 
 import os, glob, sys
-from osgeo import gdal, gdalconst
+#from osgeo import gdal, gdalconst
 import win32com.client
 import shutil
 import numpy
@@ -16,8 +16,8 @@ import numpy
 #inputf3= 'ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_PIXID'
 #inputf2= 'seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0'
 
-inputf0= 'list_groupfiles_random_09282011.txt'  # This is a list of group file to use in the processing
-inputf4= 'list_ID_random_09282011.txt'                                     # This is a list of group file to use in the processing
+inputf0='list_groupfiles_random_09282011.txt'  # This is a list of group file to use in the processing
+inputf4='list_ID_random_09282011.txt'                                     # This is a list of group file to use in the processing
 inputf2= 'seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0' #do not include extension!!
 inputf5= 'wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83' # do not include extension!!
 inputf6='ps_wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83_mode.avl'
@@ -26,7 +26,11 @@ output_prefix= 'seg0_9_b_STDV_rd_092311_Chain_cluster_'  #names
 
 mask_image ='none'
 #wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\\' #Path
-wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random9\\' #Path
+#wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random9\\' #Path
+#Problem with path!!! \bparmentier becuase of \b!!!! so added \\b 
+#wd1='C:\\Users\\bparmentier\\Google Drive\\Dissertation_paper3_09262014\\seg_classification_random9\\'
+
+wd1= 'J:\\Benoit\\Data\\Dissertation_paper3_09262014\\seg_classification_random9_02202015'
 
 step = 0.5;  #If random is equal 1 then create a random pseudo image with ID at random places 
 dist_max = 15;
@@ -37,7 +41,9 @@ sequence = 1;
 #START OF THE SCRIPT
 api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
 wd = api.GetWorkingDir();                                      #Is variable containing the path of the working directory
-wd = 'H:\Benoit_Backup\Paper3_STA_07202011\\'
+#wd = 'H:\Benoit_Backup\Paper3_STA_07202011\\'
+#wd = 'C:\\Users\\bparmentier\\Google Drive\\Dissertation_paper3_09262014\\test_02172015'
+wd = 'J:\\Benoit\Data\\Dissertation_paper3_09262014\\test_02202015'
 
 stop=int((dist_max-dist_min)/step);
 distance=dist_min;
@@ -50,7 +56,7 @@ distance=dist_min;
 ##    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
 ##    if not success:
 ##        print('Error running ' + module + '!')
-
+#wd1='C:\\Users\\bparmentier\\Google Drive\\Dissertation_paper3_09262014\\'
 f1 = open( wd1+inputf0,'r')
 f2 = open( wd1+inputf4,'r')
 
