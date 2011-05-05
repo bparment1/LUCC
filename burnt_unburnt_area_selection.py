@@ -83,7 +83,7 @@ api.DisplayFile(wd+'random'+'.rst', 'quant')    # Displaying the random map usin
 
 
 ###########################################LOOP TO DEFINE THE UNBURNT PIXELS##############
-
+#processed_poylgon 
 
 listfiles_wd = glob.glob(wd+inputf+'_allocating'+'_bool_Class_'+'*'+'.rst')         #This creates a list with all the rst files in the working directory
 loop_number = 0                                                                  #Note that the list is in a unicode format hence the u' before the string
@@ -122,40 +122,48 @@ for filename in listfiles_wd:        #tThis is a loop through a list in which th
 
     f1 = open(wd+'area_unburnt_selection.avl','r')
     linef1=f1.readline() #read the first line which pertains to category 0
-    id, area_un_selection_str =linef1.rsplit(' ')
-    if int(float(id))==0:
-       linef1=f1.readline()
-       id, area_un_selection_str =linef1.rsplit(' ')
+    linef1=f1.readline()
+    if linef1 != '':
+        id, area_un_selection_str =linef1.rsplit(' ')
 
-    f2 = open(wd+'area_burnt_polygons.avl','r')     
-    linef2=f2.readline()               #reading the first line and placing it in the string variable line
-    id_polygon, area_burnt_str =linef2.rsplit(' ')
-##    if int(float(id_polygon))==0:
-##       linef2=f2.readline()
-##       id_polygon, area_burnt_str =linef2.rsplit(' ')
-    while int(float(id_polygon)) != int(id_polygon_current):
-        linef2=f2.readline()
+        f2 = open(wd+'area_burnt_polygons.avl','r')     
+        linef2=f2.readline()               #reading the first line and placing it in the string variable line
         id_polygon, area_burnt_str =linef2.rsplit(' ')
+    ##    if int(float(id_polygon))==0:
+    ##       linef2=f2.readline()
+    ##       id_polygon, area_burnt_str =linef2.rsplit(' ')
+        while int(float(id_polygon)) != int(id_polygon_current):
+            linef2=f2.readline()
+            id_polygon, area_burnt_str =linef2.rsplit(' ')
 
-    id_polygon, area_burnt_str =linef2.rsplit(' ')    
-    proportion = float(area_burnt_str)/float(area_un_selection_str)
+        id_polygon, area_burnt_str =linef2.rsplit(' ')    
+        proportion = float(area_burnt_str)/float(area_un_selection_str)
+        if proportion > 1:
+            proportion = 1.1
 
-    #RECLASS  I*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399_allocating_bool_Class_83overlay_random.rst*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\selection_83.rst*3*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\idrtemp.rcl*1       
-    parameters = 'I'+'*'+wd+'buffer20'+'_overlay_'+id_polygon_current+'_overlay_random'+'.rst'+'*'+wd+'selection_'+id_polygon_current+'.rst'+'*2'+'*1*0*'+str(proportion)+'*0*'+str(proportion)+'*1.2*-9999*1'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
-    module = 'reclass'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-       print('Error running ' + module + '!')    
+        #RECLASS  I*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399_allocating_bool_Class_83overlay_random.rst*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\selection_83.rst*3*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\idrtemp.rcl*1       
+        parameters = 'I'+'*'+wd+'buffer20'+'_overlay_'+id_polygon_current+'_overlay_random'+'.rst'+'*'+wd+'selection_'+id_polygon_current+'.rst'+'*2'+'*1*0*'+str(proportion)+'*0*'+str(proportion)+'*1.3*-9999*1'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
+        module = 'reclass'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+           print('Error running ' + module + '!')    
 
-    ###OVERLAY MODULE###     
-    parameters = '3*'+wd+'selection_'+id_polygon_current+'.rst'+'*'+wd+'buffer20'+'_overlay_'+id_polygon_current+'.rst'+'*'+wd+'unburnt_selection_'+id_polygon_current+'.rst'
-    module = 'overlay'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-       print('Error running ' + module + '!')    
-          
+        ###OVERLAY MODULE###     
+        parameters = '3*'+wd+'selection_'+id_polygon_current+'.rst'+'*'+wd+'buffer20'+'_overlay_'+id_polygon_current+'.rst'+'*'+wd+'unburnt_selection_'+id_polygon_current+'.rst'
+        module = 'overlay'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+           print('Error running ' + module + '!')
+
+                
+    else:
+        print('It is not possible to find unburnt areas for polygon'+id_polygon_current)
+##        file = open(wd+'results_code.txt', 'a')
+##        line = 'It is not possible to find unburnt areas for polygon '+id_polygon_current
+##        file.write(line)
+##        file.close
     #print 'Loop number is '+loop_number
 #print('Loop number ' + module + '!')
 #run    
