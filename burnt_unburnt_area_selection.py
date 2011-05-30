@@ -6,12 +6,14 @@ import os, glob, sys
 import win32com.client
 
 #variables
-inputf='fire_2001_2007_POL_ID_05232011' #input image containing the fire scars
+#inputf='fire_2001_2007_POL_ID_05232011' #input image containing the fire scars
+inputf='MTBS_AK_2001_2009_IDR_ID'
 #inputf='OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399'
 
 api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
 wd = api.GetWorkingDir();                                      #Is variable containing the path of the working directory
-                     
+
+#wd='G:\Benoit_Backup\Ecoregion_Fire_Data\Fire_severity_Landsat\burnt_unburnt_selection_12172011\\'                     
                                                                          #Note that the list is in a unicode format hence the u' before the string
 
 ###Running the Distance module around fire polygons########
