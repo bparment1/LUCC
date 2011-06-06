@@ -1,4 +1,5 @@
-#This script runs MODISQC for Albedo band quality and rename files containing the albedo data.
+#This script runs MODISQC for Albedo band quality and renames files containing the albedo data.
+#The script processes the series band per band and produces an aggregate series with a 16Day temporal resolution.
 
 import os, glob, sys
 
@@ -22,7 +23,9 @@ for i in range(1,nb_files+1):
         filename2= listfiles2_wd[i]
         idrisi_filename2= filename2.rstrip('\n') #Remove the LF character from the string
         #MODISQC     
-        parameters = '3'+'*'+wd+idrisi_filename2+'.rst'+'*'+wd+'W_ALASKA_2001_025_BRDF_ALBEDO_BAND_QUALITY'+'_qc_1'+'.rst'+'*1'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
+        parameters ='3'+'*'+wd+idrisi_filename2+'.rst'+'*'+wd+idrisi_filename2+'_qc_1'+'.rst'+'*1'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
+        #parameters = '2*G:\Benoit_Backup\STA_PAPER2_02262011\W_ALASKA_2001_025_MCD43B2_REPROJECTED_BRDF_ALBEDO_BAND_QUALITY.rst*G:\Benoit_Backup\STA_PAPER2_02262011\Albedo_quality_band_qc\W_ALASKA_2001_025_BRDF_ALBEDO_BAND_QUALITY_QC_5.rst*1'
+
         module = 'modisqc'
         print('Running ' + module + ' module with parameters ' + parameters)
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
