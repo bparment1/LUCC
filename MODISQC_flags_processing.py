@@ -7,15 +7,24 @@ import win32com.client
 
 #variables, input parameters
 
-inputf1='albedo_band_quality_1.rgf'     #idrisi groupfile containing the albedo band quality 
-api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
-wd = api.GetWorkingDir();
-#wd = 'G:\Benoit_Backup\Filling\ALBEDO_MCD43B2\W_OUTPUT_11_tiles_MCD43B2_BRDF_Albedo_Band_Quality\\' #location of the input files in the group file
+inputf1='albedo_data_1.rgf'
+inputf2='albedo_band_quality_1.rgf'     #idrisi groupfile containing the albedo band quality
+inputf3='albedo_BRDF_quality_1.rgf'     #idrisi groupfile containing the albedo BRDF ALBEDO quality
+
+wd2='G:\Benoit_Backup\STA_PAPER2_02262011\W_OUTPUT_11_tiles_MCD43B2_BRDF_Albedo_Band_Quality\\'
+wd3='G:\Benoit_Backup\STA_PAPER2_02262011\W_Alaska_2001_2009_MCD43B2_Reprojected_BRDF_Albedo_Quality\\'
+wd1='G:\Benoit_Backup\STA_PAPER2_02262011\w_Albedo_2001_2009_BSA_SW\\'
 band_nb = 7;                                                 #number of band used in the formation of the albedo product
 t1 = 3  #minimum threshold to consider a pixel as good quality in the BRDF band quality
 t2 = 4  #minimum threshold to consider a pixel as good quality based on the sum of the overlays
 
-f2 = open(wd+inputf1,'r') 
+#START OF THE SCRIPT
+
+api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
+wd = api.GetWorkingDir();
+#wd = 'G:\Benoit_Backup\Filling\ALBEDO_MCD43B2\W_OUTPUT_11_tiles_MCD43B2_BRDF_Albedo_Band_Quality\\' #location of the input files in the group file
+
+f2 = open(wd+inputf2,'r') 
 listfiles2_wd = f2.readlines()  #Reading all the lines in the file
 nb_files = int(listfiles2_wd[0])#Number of files in the group
 loop_number2=0
@@ -44,7 +53,9 @@ for i in range(1,nb_files+1):
                     print('Error running ' + module + '!')
 
 
-f2 = open(wd+inputf1,'r') 
+###PART2##########
+                    
+f2 = open(wd+inputf2,'r') 
 listfiles2_wd = f2.readlines()  #Reading all the lines in the file
 nb_files = int(listfiles2_wd[0])#Number of files in the group
 loop_number2=0
@@ -63,6 +74,7 @@ if not success:
 api.DisplayFile(wd+'overlay_0'+'.rst', 'qual') #This displays the file just created by the module INITIAL: 'overlay_0.rst
 
 loop_number3 = 0
+
 
 for i in range(1,nb_files+1):
         loop_number2 = loop_number2 + 1
@@ -87,6 +99,10 @@ for i in range(1,nb_files+1):
             os.remove(wd+'overlay_'+str(loop_number3-1)+'.rdc')
             #os.remove(wd+'overlay_'+str(loop_number3-1)+'.r'+'*')
 
+        listfile_wd = glob.glob(wd+idrisi_filename2+'_qc_'+'overlay_'+str(t1)+'.r**') #list the files of interest
+        if  len(listfile_wd)>0:
+                os.remove(wd+idrisi_filename2+'_qc_'+'overlay_'+str(t1)+'.rdc') #list the files of interest
+                os.remove(wd+idrisi_filename2+'_qc_'+'overlay_'+str(t1)+'.rst') #list the files of interest
         os.rename(wd+'overlay_'+str(loop_number3)+'.rst',wd+idrisi_filename2+'_qc_'+'overlay_'+str(t1)+'.rst')
         os.rename(wd+'overlay_'+str(loop_number3)+'.rdc',wd+idrisi_filename2+'_qc_'+'overlay_'+str(t1)+'.rdc')
 
@@ -98,4 +114,79 @@ for i in range(1,nb_files+1):
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
         if not success:
             print('Error running ' + module + '!')                
-       
+
+
+###PART3##########
+
+
+
+###NEED TO DO GLOB
+            
+listfiles2_wd = glob.glob(wd+idrisi_filename2+'_qc_'+'masked_'+str(t1)+'_'+str(t2)+'.rst') #list the files of interest
+
+
+f3 = open(wd+inputf3,'r') 
+listfiles3_wd = f3.readlines()  #Reading all the lines in the file
+nb_files3 = int(listfiles3_wd[0])#Number of files in the group
+loop_number3=0
+
+filename3= listfiles3_wd[1]
+idrisi_filename3= filename3.rstrip('\n')
+
+f1 = open(wd+inputf1,'r') 
+listfiles1_wd = f1.readlines()  #Reading all the lines in the file
+nb_files1 = int(listfiles1_wd[0])#Number of files in the group
+loop_number1=0
+
+filename1= listfiles1_wd[1]
+idrisi_filename1= filename1.rstrip('\n')
+##if nb_files!=nb_files3:
+##        exit()
+
+        
+for i in range(1,nb_files+1):
+        
+        loop_number2 = loop_number2 + 1
+        filename2= listfiles2_wd[i-1]
+        idrisi_filename2= filename2[filename2.rfind('\\')+1:-4] #Remove the path
+
+        filename3= listfiles3_wd[i]
+        idrisi_filename3= filename3.rstrip('\n') #Remove the LF character from the string
+
+        filename1= listfiles1_wd[i]
+        idrisi_filename1= filename1.rstrip('\n') #Remove the LF character from the string
+
+        #RECLASS  I*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399_allocating_bool_Class_83overlay_random.rst*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\selection_83.rst*3*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\idrtemp.rcl*1       
+        parameters = 'I'+'*'+wd+idrisi_filename3+'.rst'+'*'+wd+idrisi_filename3+'_qc_'+'rec'+'.rst'+'*2'+'*1*0*'+'1'+'*0*'+'1'+'*'+'256'+'*-9999*1'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
+        module = 'reclass'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')    
+
+        #overlay with option 7
+        ###OVERLAY MODULE###    
+        parameters = '7*'+wd+idrisi_filename3+'_qc_'+'rec'+'.rst'+'*'+wd+idrisi_filename2+'.rst'+'*'+wd+'overlay_mask_'+str(loop_number3)+'.rst'
+        module = 'overlay'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')
+
+        #RECLASS  I*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399_allocating_bool_Class_83overlay_random.rst*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\selection_83.rst*3*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\idrtemp.rcl*1       
+        parameters = 'I'+'*'+wd+'overlay_mask_'+str(loop_number3)+'.rst'+'*'+wd+'overlay_mask_reversed_'+str(loop_number3)+'.rst'+'*2'+'*1*0*'+'1'+'*0*'+'1'+'*'+'2'+'*-9999*1'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
+        module = 'reclass'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')      
+        
+        #overlay with option 1
+        ###OVERLAY MODULE###    
+        parameters = '1*'+wd+idrisi_filename1+'.rst'+'*'+wd+'overlay_mask_reversed_'+str(loop_number3)+'.rst+'+'*'+wd+idrisi_filename1+'_masked_'+str(t1)+'_'+str(t2)+'.rst'
+        module = 'overlay'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')        
+
