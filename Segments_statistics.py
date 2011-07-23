@@ -11,15 +11,16 @@ import shutil
 
 inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes.rgf' #bands information
 outfilename= 'Albedo_16D_masked2_fill4_'
-wd1='H:\Benoit_Backup\Paper3_STA_07202011\\' #folder location of the groupfile and files
+wd1='H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\\' #folder location of the groupfile and files
 inputf3='seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30' #This is the segment level used or the feature definition image used
 
 #inputf3= 'ID_burnt_unburnt_05232011'
 dst_frmts    = 'rst' #data format driver for gdal
 nb_f = 0             # this is the number of features in the feature image (excluding background)
-stat_n2 = '8' #SD summary
+stat_n2 = '8' #SD summary from Extract applied to to the SEG/pol
 stat_n1 = '4' #AVG summary
-stst_n3 = '9' #all statistics
+stat_n3 = '9' #all statistics
+
 
 #START OF THE SCRIPT
 api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
@@ -127,6 +128,10 @@ for i in range(1,nb_files+1,1):
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
         if not success:
             print('Error running ' + module + '!')
+
+
+        #stat_n1 = '4' #AVG summary
+
             
         #RUN ASSIGN
         parameters = wd1+'ps_'+inputf3+'_PIXID'+'.rst'+'*'+wd1+'ps_'+inputf3+'_ID'+'_b_'+str(loop_number1)+'.rst'+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'.avl'  
@@ -137,8 +142,9 @@ for i in range(1,nb_files+1,1):
             print('Error running ' + module + '!')
 
             
-listfiles1_wd1 = glob.glob(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30_ID_b_*.rst')
-f4 = open( wd1+'ps_'+inputf3+str(nb_files)+'.rgf','w')
+#listfiles1_wd1 = glob.glob(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30_ID_b_*.rst')
+listfiles1_wd1 = glob.glob(wd1+'ps_'+inputf3+'_ID_b_'+'*'+'.rst')
+f4 = open( wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf','w')
 line0 = str(len(listfiles1_wd1))+'\n'
 f4.write(line0)
 for line in listfiles1_wd1:
@@ -148,7 +154,7 @@ for line in listfiles1_wd1:
     f4.write(line) 
 f4.close()
 
-rgf_name =wd1+'ps_'+inputf3+str(nb_files)+'.rgf'
+rgf_name =wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf'
 outfilename =wd1+'ps_'+inputf3+str(nb_files)
 
 min_range =-1000
@@ -163,7 +169,14 @@ print('Running ' + module + ' module with parameters ' + parameters)
 success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
 if not success:
        print('Error running ' + module + '!')
-               
+
+#SCALAR  H:\Benoit_Backup\Paper3_STA_07202011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_Mean.rst*G:\Benoit_Backup\STA_PAPER2_02262011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_sum.rst*3*9               
+
+##stat =api.CalculateRasterMinMax('G:\Benoit_Backup\STA_PAPER2_02262011\\test4_ID.rst','1','1') #with stat being a tuple
+##stat = api.Calc_Mean_and_SD(wd1+'ps_'+inputf3+str(nb_files)+'_mean.rst','1','1')
+##stat = api.Calc_Mean_and_SD('ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_Mean.rst','1','1')
+
+
 ### ==================================== #
 ### Load GDAL Drivers:
 ##dst_frmts    = 'rst' #data format driver for gdal
