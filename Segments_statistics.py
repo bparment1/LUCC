@@ -122,7 +122,8 @@ for i in range(1,nb_files+1,1):
         filename1= listfiles1_wd[i] 
         idrisi_filename1= filename1.rstrip('\n')
 
-        parameters = wd1+inputf3+'.rst'+'*'+wd1+idrisi_filename1+'.rst'+'*'+'1*'+stat_n2+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'.avl'
+        #EXTRACT stat_n2 = '8' #AVG summary
+        parameters = wd1+inputf3+'.rst'+'*'+wd1+idrisi_filename1+'.rst'+'*'+'1*'+stat_n2+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_SD.avl'
         module = 'extract'
         print('Running ' + module + ' module with parameters ' + parameters)
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
@@ -130,45 +131,57 @@ for i in range(1,nb_files+1,1):
             print('Error running ' + module + '!')
 
 
-        #stat_n1 = '4' #AVG summary
-
+        #EXTRACT stat_n1 = '4' #AVG summary
+        parameters = wd1+inputf3+'.rst'+'*'+wd1+idrisi_filename1+'.rst'+'*'+'1*'+stat_n2+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_avg.avl'
+        module = 'extract'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')
             
         #RUN ASSIGN
-        parameters = wd1+'ps_'+inputf3+'_PIXID'+'.rst'+'*'+wd1+'ps_'+inputf3+'_ID'+'_b_'+str(loop_number1)+'.rst'+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'.avl'  
+        parameters = wd1+'ps_'+inputf3+'_PIXID'+'.rst'+'*'+wd1+'ps_'+inputf3+'_ID'+'_b_'+str(loop_number1)+'_SD.rst'+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_SD.avl'  
         module = 'assign'
         print('Running ' + module + ' module with parameters ' + parameters)
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
         if not success:
             print('Error running ' + module + '!')
 
+        #RUN ASSIGN
+        parameters = wd1+'ps_'+inputf3+'_PIXID'+'.rst'+'*'+wd1+'ps_'+inputf3+'_ID'+'_b_'+str(loop_number1)+'_avg.rst'+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_avg.avl'  
+        module = 'assign'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')
             
-#listfiles1_wd1 = glob.glob(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30_ID_b_*.rst')
-listfiles1_wd1 = glob.glob(wd1+'ps_'+inputf3+'_ID_b_'+'*'+'.rst')
-f4 = open( wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf','w')
-line0 = str(len(listfiles1_wd1))+'\n'
-f4.write(line0)
-for line in listfiles1_wd1:
-    line = line[line.rfind('\\')+1:]
-    #line = line[line.rfind('\\')+1:-4]
-    line=line.replace('.rst','\n')
-    f4.write(line) 
-f4.close()
-
-rgf_name =wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf'
-outfilename =wd1+'ps_'+inputf3+str(nb_files)
-
-min_range =-1000
-max_range =1000000000000000
-background = -1000
-min_nb_obs =1
-
-#TSTAT     
-parameters ='1'+'*'+rgf_name+'*'+outfilename+'*'+str(min_range)+'*'+str(max_range)+'*'+str(background)+'*'+str(min_nb_obs)
-module = 'TStats'
-print('Running ' + module + ' module with parameters ' + parameters)
-success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-if not success:
-       print('Error running ' + module + '!')
+##listfiles1_wd1 = glob.glob(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30_ID_b_*.rst')
+##listfiles1_wd1 = glob.glob(wd1+'ps_'+inputf3+'_ID_b_'+'*'+'.rst')
+##f4 = open( wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf','w')
+##line0 = str(len(listfiles1_wd1))+'\n'
+##f4.write(line0)
+##for line in listfiles1_wd1:
+##    line = line[line.rfind('\\')+1:]
+##    #line = line[line.rfind('\\')+1:-4]
+##    line=line.replace('.rst','\n')
+##    f4.write(line) 
+##f4.close()
+##
+##rgf_name =wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf'
+##outfilename =wd1+'ps_'+inputf3+str(nb_files)
+##
+##min_range =-1000
+##max_range =1000000000000000
+##background = -1000
+##min_nb_obs =1
+##
+##TSTAT     
+##parameters ='1'+'*'+rgf_name+'*'+outfilename+'*'+str(min_range)+'*'+str(max_range)+'*'+str(background)+'*'+str(min_nb_obs)
+##module = 'TStats'
+##print('Running ' + module + ' module with parameters ' + parameters)
+##success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+##if not success:
+##       print('Error running ' + module + '!')
 
 #SCALAR  H:\Benoit_Backup\Paper3_STA_07202011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_Mean.rst*G:\Benoit_Backup\STA_PAPER2_02262011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_sum.rst*3*9               
 
