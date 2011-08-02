@@ -9,10 +9,15 @@ import shutil
 
 #Arguments parameters for the script: variables, input parameters
 
-inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes.rgf' #bands information
-outfilename= 'Albedo_16D_masked2_fill4_'
+#inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes.rgf' #bands information
+inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes_std.RGF'
+#inputf1= 'PCA_corr_Amp9_fill6__T-Mode_Comps.rgf'
+
+output_prefix= 'PCA_'
 wd1='H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\\' #folder location of the groupfile and files
+
 inputf3='seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30' #This is the segment level used or the feature definition image used
+#inputf3='ISODATA5'
 
 #inputf3= 'ID_burnt_unburnt_05232011'
 dst_frmts    = 'rst' #data format driver for gdal
@@ -110,6 +115,8 @@ success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the ou
 if not success:
     print('Error running ' + module + '!')
 
+#Create an pseudo_image for Alaska    
+
 #___________#THIS CREATED THE PSEUDO_IMAGE FOR LEVEL_30__________________
 
 f1 = open(wd1+inputf1,'r') 
@@ -122,7 +129,7 @@ for i in range(1,nb_files+1,1):
         filename1= listfiles1_wd[i] 
         idrisi_filename1= filename1.rstrip('\n')
 
-        #EXTRACT stat_n2 = '8' #AVG summary
+        #EXTRACT stat_n2 = '8' #SD summary
         parameters = wd1+inputf3+'.rst'+'*'+wd1+idrisi_filename1+'.rst'+'*'+'1*'+stat_n2+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_SD.avl'
         module = 'extract'
         print('Running ' + module + ' module with parameters ' + parameters)
@@ -132,7 +139,7 @@ for i in range(1,nb_files+1,1):
 
 
         #EXTRACT stat_n1 = '4' #AVG summary
-        parameters = wd1+inputf3+'.rst'+'*'+wd1+idrisi_filename1+'.rst'+'*'+'1*'+stat_n2+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_avg.avl'
+        parameters = wd1+inputf3+'.rst'+'*'+wd1+idrisi_filename1+'.rst'+'*'+'1*'+stat_n1+'*'+wd1+inputf3+'_ID'+'_b_'+str(loop_number1)+'_avg.avl'
         module = 'extract'
         print('Running ' + module + ' module with parameters ' + parameters)
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
@@ -154,37 +161,75 @@ for i in range(1,nb_files+1,1):
         success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
         if not success:
             print('Error running ' + module + '!')
+
+#CREATING RGF FOR SD OF THE POLYGONS/SEGMENTS STATISTICS
             
-##listfiles1_wd1 = glob.glob(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30_ID_b_*.rst')
-##listfiles1_wd1 = glob.glob(wd1+'ps_'+inputf3+'_ID_b_'+'*'+'.rst')
-##f4 = open( wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf','w')
-##line0 = str(len(listfiles1_wd1))+'\n'
-##f4.write(line0)
-##for line in listfiles1_wd1:
-##    line = line[line.rfind('\\')+1:]
-##    #line = line[line.rfind('\\')+1:-4]
-##    line=line.replace('.rst','\n')
-##    f4.write(line) 
-##f4.close()
-##
-##rgf_name =wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf'
-##outfilename =wd1+'ps_'+inputf3+str(nb_files)
-##
-##min_range =-1000
-##max_range =1000000000000000
-##background = -1000
-##min_nb_obs =1
-##
-##TSTAT     
-##parameters ='1'+'*'+rgf_name+'*'+outfilename+'*'+str(min_range)+'*'+str(max_range)+'*'+str(background)+'*'+str(min_nb_obs)
-##module = 'TStats'
-##print('Running ' + module + ' module with parameters ' + parameters)
-##success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-##if not success:
-##       print('Error running ' + module + '!')
+listfiles1_wd1 = glob.glob(wd1+'ps_'+inputf3+'_ID'+'_b_*_SD.rst')
+rgf_name_SD =wd1+'ps_'+inputf3+'_'+str(nb_files)+'_SD.rgf'
 
-#SCALAR  H:\Benoit_Backup\Paper3_STA_07202011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_Mean.rst*G:\Benoit_Backup\STA_PAPER2_02262011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_sum.rst*3*9               
+f4 = open( rgf_name_SD,'w')
+#f4 = open( wd1+'ps_'+inputf3+'_'+str(nb_files)+'.rgf','w')
+line0 = str(len(listfiles1_wd1))+'\n'
+f4.write(line0)
+for line in listfiles1_wd1:
+    line = line[line.rfind('\\')+1:]
+    #line = line[line.rfind('\\')+1:-4]
+    line=line.replace('.rst','\n')
+    f4.write(line) 
+f4.close()
 
+#CREATING RGF FOR AVG OF THE POLYGONS/SEGMENTS STATISTICS
+
+listfiles1_wd2 = glob.glob(wd1+'ps_'+inputf3+'_ID'+'_b_*_avg.rst')
+rgf_name_avg =wd1+'ps_'+inputf3+'_'+str(nb_files)+'_avg.rgf'
+
+f5 = open( rgf_name_avg,'w')
+line0 = str(len(listfiles1_wd2))+'\n'
+f5.write(line0)
+for line in listfiles1_wd2:
+    line = line[line.rfind('\\')+1:]
+    #line = line[line.rfind('\\')+1:-4]
+    line=line.replace('.rst','\n')
+    f5.write(line) 
+f5.close()
+
+#PARAMETERS FOR RUN TSTATS
+#rgf_name =wd1+'ps_'+inputf3+'_'+str(nb_files)+'SD.rgf'
+outfilename =wd1+'ps_'+inputf3+'_'+str(nb_files)+'_SD'
+
+min_range =-1000
+max_range =1000000000000000
+background = -1000
+min_nb_obs =1
+
+#RUN TSTATS     
+parameters ='1'+'*'+rgf_name_SD+'*'+outfilename+'*'+str(min_range)+'*'+str(max_range)+'*'+str(background)+'*'+str(min_nb_obs)
+module = 'tstats'
+print('Running ' + module + ' module with parameters ' + parameters)
+success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+if not success:
+       print('Error running ' + module + '!')
+
+
+# ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__0_9_SD_Mean.rst
+#stat = api.Calc_Mean_and_SD(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__0_9_SD_Mean.rst','1','1')
+
+listfiles1_wd3= glob.glob(wd1+'ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__*_9_SD_Mean.rst')
+
+rgf_name_SD_mean =wd1+'ps_'+inputf3+'_'+str(nb_files)+'_SD_mean.rgf'
+
+f6 = open( rgf_name_SD_mean,'w')
+line0 = str(len(listfiles1_wd3))+'\n'
+f6.write(line0)
+for line in listfiles1_wd2:
+    line = line[line.rfind('\\')+1:]
+    #line = line[line.rfind('\\')+1:-4]
+    line=line.replace('.rst','\n')
+    f6.write(line) 
+f6.close()
+
+##SCALAR  H:\Benoit_Backup\Paper3_STA_07202011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_Mean.rst*G:\Benoit_Backup\STA_PAPER2_02262011\ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_sum.rst*3*9               
+##
 ##stat =api.CalculateRasterMinMax('G:\Benoit_Backup\STA_PAPER2_02262011\\test4_ID.rst','1','1') #with stat being a tuple
 ##stat = api.Calc_Mean_and_SD(wd1+'ps_'+inputf3+str(nb_files)+'_mean.rst','1','1')
 ##stat = api.Calc_Mean_and_SD('ps_seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__309_Mean.rst','1','1')
