@@ -19,6 +19,7 @@ import numpy
 inputf1= 'seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd1_STDV__6_avg.rgf'
 inputf3= 'ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0rd1_STDV__PIXID' # do not include extension
 inputf2= 'seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0' #do not include extension
+inputf4= ''
 
 output_prefix= 'seg0_6_bands_Chain_cluster_rd1seq1_STDV'  #names
 #output_prefix= 'test_STDV'
