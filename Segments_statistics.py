@@ -16,9 +16,9 @@ inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes_std.RGF'
 #inputf1= 'PCA_corr_Amp9_fill6__T-Mode_Comps.rgf'
 
 nb_images = 30
-output_prefix= 'rd_STDV_091111'  #'INTERCEPTS' 
+output_prefix= 'rd_STDV_091311'  #'INTERCEPTS' 
 #wd1='H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\\' #folder location of the groupfile and files
-wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random4\\'
+wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random7\\'
 
 #inputf3='seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30' #This is the segment level used or the feature definition image used
 inputf3='seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0' #This is the segment level used or the feature definition image used
@@ -242,10 +242,20 @@ for j in range(1,nb_images+1,1):
         os.rename(wd1+'ps_'+inputf3+'_PIXID'+'.rst',wd1+'ps_'+inputf3+'_'+output_prefix+'_'+str(j)+'_PIXID'+'.rst')
         os.rename(wd1+'ps_'+inputf3+'_PIXID'+'.rdc',wd1+'ps_'+inputf3+'_'+output_prefix+'_'+str(j)+'_PIXID'+'.rdc')
 
+#RUN METAUPDATE MODULE TO ACCOUNT FOR THE BACKGROUND VALUE
+        
+listfiles1_wd3 = glob.glob(wd1+'ps_'+inputf3+'_'+output_prefix+'_*_*_avg.rgf')
+listfiles1_wd4 = glob.glob(wd1+'ps_'+inputf3+'_'+output_prefix+'_*_*_SD.rgf')
+
+for j in range(1,nb_images+1,1):        
+
     #METAUPDTE  1*H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random2\ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd_STDV__1_9_avg.rgf*21*-999
     #METAUPDTE  1*H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random2\ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd_STDV__1_9_avg.rgf*22*Background
 
-    #RUN METAUPDATE MODULE TO ACCOUNT FOR THE BACKGROUND VALUE
+    rgf_name_avg =listfiles1_wd3[j-1]
+    rgf_name_SD =listfiles1_wd4[j-1]
+    
+
     parameters = '1'+'*'+rgf_name_avg+'*'+'21'+'*'+'-999'  
     module = 'metaupdte'
     print('Running ' + module + ' module with parameters ' + parameters)
@@ -273,7 +283,22 @@ for j in range(1,nb_images+1,1):
     success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
     if not success:
         print('Error running ' + module + '!')
-        
+
+##listfiles1_wd6 = glob.glob(wd1+'ps_'+inputf3+'_ID_'+output_prefix+'_*_b_*_avg.rdc')
+##file=listfiles1_wd6[0]
+##open(file,'r')
+##listfiles1_wd2 = glob.glob(wd1+'ps_'+inputf3+'_ID_'+output_prefix+'_'+str(j)+'_b_*_avg.rst')
+##rgf_name_avg =wd1+'ps_'+inputf3+'_'+output_prefix+'_'+str(j)+'_'+str(nb_files)+'_avg.rgf'
+##
+##f5 = open( list_rgf_,'w')
+##line0 = str(len(listfiles1_wd3))+'\n'
+##f5.write(line0)
+##for line in listfiles1_wd3:
+##    line = line[line.rfind('\\')+1:]
+##    #line = line[line.rfind('\\')+1:-4]
+##    line=line.replace('.rst','\n')
+##    f5.write(line) 
+##f5.close()     
 # End of the program
 
 ###PARAMETERS FOR RUN TSTATS
