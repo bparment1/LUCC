@@ -10,15 +10,15 @@ import shutil
 #Arguments parameters for the script: variables, input parameters
 
 #inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes.rgf' #bands information
-inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes_std.RGF'
+inputf1= 'Amplitudes_2001_2009_filling6__9_STA_Slopes_std_modif1.RGF'
 #inputf1= 'Intercepts_9_2001_2009_filling6__STA_amplitudes_TS_std.rgf'
 #inputf1= '9_intercepts_NDVI_LST_ALB_2001_2009.rgf'
 #inputf1= 'PCA_corr_Amp9_fill6__T-Mode_Comps.rgf'
 
 nb_images = 30
-output_prefix= 'rd_STDV_091311'  #'INTERCEPTS' 
+output_prefix= 'rd_STDV_092811'  #'INTERCEPTS' 
 #wd1='H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\\' #folder location of the groupfile and files
-wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random7\\'
+wd1= 'H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random9\\'
 
 #inputf3='seg10_NDVI_LST_ALB_A0_A1_A2_TS_slope_scale_0_450__30' #This is the segment level used or the feature definition image used
 inputf3='seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0' #This is the segment level used or the feature definition image used
@@ -242,47 +242,47 @@ for j in range(1,nb_images+1,1):
         os.rename(wd1+'ps_'+inputf3+'_PIXID'+'.rst',wd1+'ps_'+inputf3+'_'+output_prefix+'_'+str(j)+'_PIXID'+'.rst')
         os.rename(wd1+'ps_'+inputf3+'_PIXID'+'.rdc',wd1+'ps_'+inputf3+'_'+output_prefix+'_'+str(j)+'_PIXID'+'.rdc')
 
-#RUN METAUPDATE MODULE TO ACCOUNT FOR THE BACKGROUND VALUE
-        
-listfiles1_wd3 = glob.glob(wd1+'ps_'+inputf3+'_'+output_prefix+'_*_*_avg.rgf')
-listfiles1_wd4 = glob.glob(wd1+'ps_'+inputf3+'_'+output_prefix+'_*_*_SD.rgf')
-
-for j in range(1,nb_images+1,1):        
-
-    #METAUPDTE  1*H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random2\ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd_STDV__1_9_avg.rgf*21*-999
-    #METAUPDTE  1*H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random2\ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd_STDV__1_9_avg.rgf*22*Background
-
-    rgf_name_avg =listfiles1_wd3[j-1]
-    rgf_name_SD =listfiles1_wd4[j-1]
-    
-
-    parameters = '1'+'*'+rgf_name_avg+'*'+'21'+'*'+'-999'  
-    module = 'metaupdte'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-        print('Error running ' + module + '!')
-
-    parameters = '1'+'*'+rgf_name_SD+'*'+'21'+'*'+'-999'  
-    module = 'metaupdte'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-        print('Error running ' + module + '!')
-    
-    parameters = '1'+'*'+rgf_name_avg+'*'+'22'+'*'+'Background'  
-    module = 'metaupdte'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-        print('Error running ' + module + '!')
-
-    parameters = '1'+'*'+rgf_name_SD+'*'+'22'+'*'+'Background'  
-    module = 'metaupdte'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-        print('Error running ' + module + '!')
+###RUN METAUPDATE MODULE TO ACCOUNT FOR THE BACKGROUND VALUE
+##        
+##listfiles1_wd3 = glob.glob(wd1+'ps_'+inputf3+'_'+output_prefix+'_*_*_avg.rgf')
+##listfiles1_wd4 = glob.glob(wd1+'ps_'+inputf3+'_'+output_prefix+'_*_*_SD.rgf')
+##
+##for j in range(1,nb_images+1,1):        
+##
+##    #METAUPDTE  1*H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random2\ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd_STDV__1_9_avg.rgf*21*-999
+##    #METAUPDTE  1*H:\Benoit_Backup\Paper3_STA_07202011\Segments_classifications\seg_classification_random2\ps_seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0_rd_STDV__1_9_avg.rgf*22*Background
+##
+##    rgf_name_avg =listfiles1_wd3[j-1]
+##    rgf_name_SD =listfiles1_wd4[j-1]
+##    
+##
+##    parameters = '1'+'*'+rgf_name_avg+'*'+'21'+'*'+'-999'  
+##    module = 'metaupdte'
+##    print('Running ' + module + ' module with parameters ' + parameters)
+##    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+##    if not success:
+##        print('Error running ' + module + '!')
+##
+##    parameters = '1'+'*'+rgf_name_SD+'*'+'21'+'*'+'-999'  
+##    module = 'metaupdte'
+##    print('Running ' + module + ' module with parameters ' + parameters)
+##    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+##    if not success:
+##        print('Error running ' + module + '!')
+##    
+##    parameters = '1'+'*'+rgf_name_avg+'*'+'22'+'*'+'Background'  
+##    module = 'metaupdte'
+##    print('Running ' + module + ' module with parameters ' + parameters)
+##    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+##    if not success:
+##        print('Error running ' + module + '!')
+##
+##    parameters = '1'+'*'+rgf_name_SD+'*'+'22'+'*'+'Background'  
+##    module = 'metaupdte'
+##    print('Running ' + module + ' module with parameters ' + parameters)
+##    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+##    if not success:
+##        print('Error running ' + module + '!')
 
 ##listfiles1_wd6 = glob.glob(wd1+'ps_'+inputf3+'_ID_'+output_prefix+'_*_b_*_avg.rdc')
 ##file=listfiles1_wd6[0]
