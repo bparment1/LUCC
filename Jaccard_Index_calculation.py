@@ -38,32 +38,41 @@ if not success:
    
 #BREAKOUT  1*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399.rst*C:\Data\Benoit\Clark_University\Python\dissertationunburnt_pixels_selection\OVERLAY_ID_83_399_144_TEST_BURNT_83_144_399*1
 
-listfilesf1_wd = glob.glob(wd+inputf1+'_bool_Class_'+'*'+'.rst')         #This creates a list with all the rst files in the working directory
-listfilesf2_wd = glob.glob(wd+inputf2+'_bool_Class_'+'*'+'.rst')         #This creates a list with all the rst files in the working directory
+##listfilesf1_wd = glob.glob(wd+inputf1+'_bool_Class_'+'*'+'.rst')         #This creates a list with all the rst files in the working directory
+##listfilesf2_wd = glob.glob(wd+inputf2+'_bool_Class_'+'*'+'.rst')         #This creates a list with all the rst files in the working directory
 
-nb_f1 = len(listfilesf1_wd)
-nb_f2 = len(listfilesf2_wd)
+f1 = open( wd+inputf1+'.rgf','r')
+f2 = open( wd+inputf2+'.rgf','r')
 
-Jacard_table = numpy.ones((nb_f2+1,nb_f1+1)) #declaring an array of size stop+1 and initialized with number 1
+listlines_f1 = f1.readlines()  #Reading all the lines in the file
+listlines_f2 = f2.readlines()  #Reading all the lines in the file
+nb_f1 =len(listlines_f1)
+nb_f2 =len(listlines_f2)
+f1.close()
+f2.close()
+##nb_f1 = len(listfilesf1_wd)
+##nb_f2 = len(listfilesf2_wd)
+
+Jacard_table = numpy.ones((nb_f2,nb_f1)) #declaring an array of size stop+1 and initialized with number 1
 
 ###########################################LOOP TO DEFINE THE UNBURNT PIXELS##############
 #processed_poylgon 
 
-i = 0                                                                  #Note that the list is in a unicode format hence the u' before the string
-filename2 = 'wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83_bool_Class_1.rst'
+j = 0                                                                  #Note that the list is in a unicode format hence the u' before the string
+filename2 = 'wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83_bool_Class_1'
 
-for filename in listfilesf1_wd:        #tThis is a loop through a list in which there is no update. To make update in a list use a copy 
-    i = i + 1
-    
-    # Extract the IDRISI filename from the full path
-    idrisi_filename = filename[filename.rfind('\\')+1:-4]        #This select the name within the string excluding the extension
-    id_polygon_current = idrisi_filename[idrisi_filename.rfind('_')+1:]      # Extract cluster number from filename by finding the last '_'
+for j in range(2,nb_f1):
+##for filename in listfilesf1_wd:        #tThis is a loop through a list in which there is no update. To make update in a list use a copy 
+    filename1= listlines_f1[j]
+    #filename2= listlines_f2[j]
+    idrisi_filename1= filename1.rstrip('\n') #Remove the LF character from the string
+    idrisi_filename2= filename2.rstrip('\n') #Remove the LF character from the string
+    id_polygon_current = idrisi_filename1[idrisi_filename1.rfind('_')+1:]      # Extract cluster number from filename by finding the last '_'
 
-    idrisi_filename2 = filename2[filename2.rfind('\\')+1:-4]  
     id_polygon_current2 = idrisi_filename2[idrisi_filename2.rfind('_')+1:]
-    j=1
+    i=1
     ###OVERLAY MODULE###    
-    parameters = '1*'+wd+idrisi_filename+'.rst'+'*'+wd+idrisi_filename2+'.rst'+'*'+wd+idrisi_filename+'_overlay_'+id_polygon_current+'_'+id_polygon_current2+'.rst'
+    parameters = '1*'+wd+idrisi_filename1+'.rst'+'*'+wd+idrisi_filename2+'.rst'+'*'+wd+idrisi_filename1+'_overlay_'+id_polygon_current+'_'+id_polygon_current2+'.rst'
     module = 'overlay'
     print('Running ' + module + ' module with parameters ' + parameters)
     success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
@@ -79,7 +88,7 @@ for filename in listfilesf1_wd:        #tThis is a loop through a list in which 
 ##       print('Error running ' + module + '!')       
 ##           
     ###AREA###
-    parameters = wd+idrisi_filename+'_overlay_'+id_polygon_current+'_'+id_polygon_current2+'.rst'+'*'+'2*1*'+wd+'area_selection.avl'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
+    parameters = wd+idrisi_filename1+'_overlay_'+id_polygon_current+'_'+id_polygon_current2+'.rst'+'*'+'2*1*'+wd+'area_selection.avl'  #option 2 is an avl file with option 1 , count in cells in textfile '*.avl'
     module = 'area'
     print('Running ' + module + ' module with parameters ' + parameters)
     success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
@@ -106,7 +115,8 @@ for filename in listfilesf1_wd:        #tThis is a loop through a list in which 
         else:             
             Jacard_Index = (float(area_cat2_str)/(float(area_cat1_str)+float(area_cat2_str)))*100
 
-        Jacard_table[j,i]= Jacard_Index
+        #Jacard_table[j-1,i-1]= Jacard_Index
+        Jacard_table[j-1,i]= Jacard_Index
     
 outfile1=wd+'Jacard_table.txt'
 numpy.savetxt(outfile1, Jacard_table, fmt='%-7.6f')    
