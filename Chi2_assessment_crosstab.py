@@ -15,19 +15,13 @@ import numpy
 inputf0= 'ctab1.id$'  # This is a list of group file to use in t
 inputf2= 'seg0_9_b_STDV_rd_092311_Chain_cluster__f8_7' #do not include extension!!
 inputf1= 'wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83' # do not include extension!!
-output_prefix= '12212011_'  #names
+inputf3='wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83' # This is the mask file.
+
+output_prefix= 'Eco_ChainC_12212011_'  #names
 
 wd1= 'C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Chi2_test_Python\\' 
 
-##f1 = open( wd1+inputf0,'r')
-##
-##Chi2=listlines_f1[10]
-##CV=listlines_f1[13]
-##
-##cat_map1=18
-##cat_map2=17
-
-Chi2_table = numpy.ones((cat_map1,cat_map2)) #declaring an array of size stop+1 and nb_files initialized with number 1, it will hold Cramer's V stat
+#Chi2_table = numpy.ones((cat_map1,cat_map2)) #declaring an array of size stop+1 and nb_files initialized with number 1, it will hold Cramer's V stat
 
 #RUN BREAKOUT FOR MAP1
 parameters = '1*'+wd1+inputf1+'.rst'+'*'+wd1+inputf1+'*1'
@@ -74,6 +68,8 @@ i= 0
 ##for i in range(2,nb_f2):
 ##    filename2= listlines_f2[i]
 
+filename3=inputf3 #This is the mask file.
+
 filename2='seg0_9_b_STDV_rd_092311_Chain_cluster__f8_7_bool_Class_1.rst'
 
 for j in range(2,nb_f1):
@@ -86,7 +82,8 @@ for j in range(2,nb_f1):
 
     id_polygon_current2 = idrisi_filename2[idrisi_filename2.rfind('_')+1:]
     #RUN CROSSTAB
-    parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard_Index_Python\wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.rst*2*none*N'
+    parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*'+wd1+filename3+'.rst'+'*2*none*N'
+    #parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard_Index_Python\wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.rst*2*none*N'
     module = 'crosstab'
     print('Running ' + module + ' module with parameters ' + parameters)
     success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
@@ -102,13 +99,13 @@ for j in range(2,nb_f1):
     
     Chi2=float(Chi2_str.rstrip('\n'))
     CV=float(CV_str.rstrip('\n'))
-    Chi2_table[j-1,i]= Chi2
-    CV_table[j-1,i]= CV
+    Chi2_table[j-2,i]= Chi2            #In order to write the value in the first row and column we need to do minus 2
+    CV_table[j-2,i]= CV
     #NOTE THAT J correspond to rows and i to columnns in the output table or matrix!!!!
     #NOTE THAT the index starts at 0
     
-outfile1=wd1+'Chi2_table.txt'
-outfile2=wd1+'CV_table.txt'
+outfile1=wd1+output_prefix+'Chi2_table.txt'
+outfile2=wd1+output_prefix+'CV_table.txt'
 numpy.savetxt(outfile1, Chi2_table, fmt='%-7.6f')
 numpy.savetxt(outfile2, CV_table, fmt='%-7.6f')
 
