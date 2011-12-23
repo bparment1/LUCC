@@ -21,6 +21,11 @@ output_prefix= 'Eco_ChainC_12212011_'  #names
 
 wd1= 'C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Chi2_test_Python\\' 
 
+
+
+api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
+
+
 #Chi2_table = numpy.ones((cat_map1,cat_map2)) #declaring an array of size stop+1 and nb_files initialized with number 1, it will hold Cramer's V stat
 
 #RUN BREAKOUT FOR MAP1
@@ -39,8 +44,8 @@ success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the ou
 if not success:
    print('Error running ' + module + '!')
 
-f1 = open( wd+inputf1+'.rgf','r')
-f2 = open( wd+inputf2+'.rgf','r')
+f1 = open( wd1+inputf1+'.rgf','r')
+f2 = open( wd1+inputf2+'.rgf','r')
 
 listlines_f1 = f1.readlines()  #Reading all the lines in the file
 listlines_f2 = f2.readlines()  #Reading all the lines in the file
@@ -70,39 +75,41 @@ i= 0
 
 filename3=inputf3 #This is the mask file.
 
-filename2='seg0_9_b_STDV_rd_092311_Chain_cluster__f8_7_bool_Class_1.rst'
+#filename2='seg0_9_b_STDV_rd_092311_Chain_cluster__f8_7_bool_Class_1.rst'
 
-for j in range(2,nb_f1):
-##for filename in listfilesf1_wd:        #tThis is a loop through a list in which there is no update. To make update in a list use a copy 
-    filename1= listlines_f1[j]
-    #filename2= listlines_f2[j]
-    idrisi_filename1= filename1.rstrip('\n') #Remove the LF character from the string
-    idrisi_filename2= filename2.rstrip('\n') #Remove the LF character from the string
-    id_polygon_current = idrisi_filename1[idrisi_filename1.rfind('_')+1:]      # Extract cluster number from filename by finding the last '_'
+for i in range(2,nb_f2):
+    filename2= listlines_f2[i]
+    for j in range(2,nb_f1):
+    ##for filename in listfilesf1_wd:        #tThis is a loop through a list in which there is no update. To make update in a list use a copy 
+        filename1= listlines_f1[j]
+        #filename2= listlines_f2[j]
+        idrisi_filename1= filename1.rstrip('\n') #Remove the LF character from the string
+        idrisi_filename2= filename2.rstrip('\n') #Remove the LF character from the string
+        id_polygon_current = idrisi_filename1[idrisi_filename1.rfind('_')+1:]      # Extract cluster number from filename by finding the last '_'
 
-    id_polygon_current2 = idrisi_filename2[idrisi_filename2.rfind('_')+1:]
-    #RUN CROSSTAB
-    parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*'+wd1+filename3+'.rst'+'*2*none*N'
-    #parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard_Index_Python\wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.rst*2*none*N'
-    module = 'crosstab'
-    print('Running ' + module + ' module with parameters ' + parameters)
-    success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
-    if not success:
-        print('Error running ' + module + '!')
+        id_polygon_current2 = idrisi_filename2[idrisi_filename2.rfind('_')+1:]
+        #RUN CROSSTAB
+        parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*'+wd1+filename3+'.rst'+'*2*none*N'
+        #parameters = '1*'+wd1+idrisi_filename1+'.rst'+'*'+wd1+idrisi_filename2+'*NONE*C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard_Index_Python\wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.rst*2*none*N'
+        module = 'crosstab'
+        print('Running ' + module + ' module with parameters ' + parameters)
+        success = api.RunModule(module, parameters, True, '', '', '', '', True)  #the output of api.runmodule is a value '1' if it is sucessful and '0' if not.
+        if not success:
+            print('Error running ' + module + '!')
 
-    f0 = open( wd1+inputf0,'r')
-    listlines_f0 = f0.readlines()  #Reading all the lines in the file
-    f0.close()
-    
-    temp1, Chi2_str= listlines_f0[10].rsplit('=')
-    temp2, CV_str= listlines_f0[13].rsplit('=')
-    
-    Chi2=float(Chi2_str.rstrip('\n'))
-    CV=float(CV_str.rstrip('\n'))
-    Chi2_table[j-2,i]= Chi2            #In order to write the value in the first row and column we need to do minus 2
-    CV_table[j-2,i]= CV
-    #NOTE THAT J correspond to rows and i to columnns in the output table or matrix!!!!
-    #NOTE THAT the index starts at 0
+        f0 = open( wd1+inputf0,'r')
+        listlines_f0 = f0.readlines()  #Reading all the lines in the file
+        f0.close()
+        
+        temp1, Chi2_str= listlines_f0[10].rsplit('=')
+        temp2, CV_str= listlines_f0[13].rsplit('=')
+        
+        Chi2=float(Chi2_str.rstrip('\n'))
+        CV=float(CV_str.rstrip('\n'))
+        Chi2_table[j-2,i-2]= Chi2            #In order to write the value in the first row and column we need to do minus 2
+        CV_table[j-2,i-2]= CV
+        #NOTE THAT J correspond to rows and i to columnns in the output table or matrix!!!!
+        #NOTE THAT the index starts at 0
     
 outfile1=wd1+output_prefix+'Chi2_table.txt'
 outfile2=wd1+output_prefix+'CV_table.txt'
