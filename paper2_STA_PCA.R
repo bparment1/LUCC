@@ -5,7 +5,7 @@
 library(raster)                                                                        # loading the raster package
 library(gtools)                                                                        # loading ...
 library(sp)
-library(mgcv)
+library(gplots)
 
 ###Parameters and arguments
 
@@ -193,7 +193,7 @@ boxplot(data$FAC1_1~data$Severity
 # 5: mixed forest
 # 4: high shrub (shrub)
 # 3: low shrub (dwarf shrub)
-# 2: grassland
+# 2: grassland and Non Woody vegetation
 # 1: other
 # 0: NA
 
@@ -211,7 +211,8 @@ detach(data)
         
 # another example: create 5 categories for 
 attach(data)
-data$F_t2[F_type<3] <- 1 #Merging 2,1,0
+data$F_t2[F_type==1] <- NA #Assigning NA to category 1 (Other)
+data$F_t2[F_type==2] <- 1 #Assigning NA to category 1 (Other)
 data$F_t2[F_type==3] <- 2
 data$F_t2[F_type==4] <- 3
 data$F_t2[F_type==5] <- 4
@@ -236,25 +237,44 @@ boxplot(data_BURNT$FAC1_1~data_BURNT$F_t3,outline=FALSE)
 lm_F_t1<-lm(data_BURNT$FAC1_1~data_BURNT$F_t1)        
 lm_F_t3<-lm(data_BURNT$FAC1_1~data_BURNT$F_t3)    
 
-mean_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_type, mean, na.rm=TRUE)
-mean_dNBR_t1<-tapply(data_BURNT$dNBR_mean_NA,data_BURNT$F_type, mean, na.rm=TRUE)
-mean_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, mean, na.rm=TRUE)
-sd_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, sd, na.rm=TRUE)
+mean_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t1, mean, na.rm=TRUE)
+mean_PC1_t2<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t2, mean, na.rm=TRUE)
+mean_dNBR_t2<-tapply(data_BURNT$dNBR_mean_NA,data_BURNT$F_t2, mean, na.rm=TRUE)
+sd_dNBR_t2<-tapply(data_BURNT$dNBR_mean_NA,data_BURNT$F_t2, sd, na.rm=TRUE)
+median_dNBR_t2<-tapply(data_BURNT$dNBR_mean_NA,data_BURNT$F_t2, median, na.rm=TRUE)
 
-x_cat<-c("LSH","HSH", "MX", "DEC", "EGF")
-data_BURNT$F_type_f<-factor(data_BURNT$F_t3, labels=x_cat, exclude="NULL")
-x<- mean_PC1_t3
-
-#X11(width=55,height=45)
+boxplot(data_BURNT$FAC1_1~data_BURNT$F_t2, outline=FALSE)
+lmt<-lm(data_BURNT$FAC1_1~data_BURNT$F_t2)
         
-plot(c(1:5), x, xlim=c(.8, 5), ylim=c(-.4,1), type="l", axes=FALSE,
+mean_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, mean, na.rm=TRUE)
+sd_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t1, sd, na.rm=TRUE) #This contains the standard deviation for
+                                                                     #PC1 and the different land covers.
+sd_PC1_t2<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t2, sd, na.rm=TRUE)
+        
+x_cat<-c("NWV","LSH","HSH", "MX", "DEC", "EGF")
+data_BURNT$F_type_f<-factor(data_BURNT$F_t2, labels=x_cat, exclude="NULL")
+means<- mean_PC1_t2
+stdev<-sd_PC1_t2
+        
+#PLOT WITH STD_DEV AS  WIDTH
+tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
+means <- sapply(tmp, mean)
+stdev <- sqrt(sapply(tmp, var))
+n     <- sapply(tmp,length)
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=means, uiw=ciw, col="black", barcol="blue",
+       labels=round(means,-3), xaxt="n", xlim=c(1,6),ylim=c(-1,2), xlab="LAND COVER TYPES",ylab="PC1 SCORES")
+axis(side=1, at=1:6, labels=x_cat, cex=0.7)
+
+###
+plot(c(1:6), x, xlim=c(.8, 6), ylim=c(-.8,2), type="p", axes=FALSE,
         col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
-points(c(1:5), x, pch=1)
-axis(1, at=c(1,5)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+points(c(1:6), x, pch=1)
+axis(1, at=c(1,6)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
 axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
 box()    #This draws a box...
         
-plot(x)        
         
 plot(x_cat, x, xlim=c(-.2, 5), ylim=c(-.4,1), type="l", axes=FALSE,
         col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
@@ -297,8 +317,9 @@ axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 an
 axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
 box()    #This draws a box...
         
-boxplot(data_BURNT$FAC1_1~data_BURNT$F_type3)        
-        
+boxplot(data_BURNT$FAC1_1~data_BURNT$F_t3)        
+plotmeans(data_BURNT$FAC1_1~data_BURNT$F_t2)        
+
 plot(mean_PC1_type2)
 table(data$F_type2) # This gives the frequency per category
 boxplot(data$FAC1_1~data$F_type2, subset(data, BURNT==1))     
@@ -370,4 +391,26 @@ plot(y[,1])
 mean_PC1_HL1_NDVIA0_y1<-tapply(d14b_B$NDVI.A0.y1,d14b_B$PC1_HL1, mean, na.rm=TRUE)
 mean_PC1_HL1_NDVIA0_y1<-tapply(d14b_B$NDVI.A0.y1,d14b_B$PC1_HL1, mean, na.rm=TRUE)
         
+###END OF SCRIPT
         
+# plot means and
+data(state)
+tmp   <- split(state.area, state.region)
+means <- sapply(tmp, mean)
+stdev <- sqrt(sapply(tmp, var))
+n     <- sapply(tmp,length)
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+        
+# plain
+plotCI(x=means, uiw=ciw)
+        
+# prettier
+plotCI(x=means, uiw=ciw, col="black", barcol="blue", lwd=1)
+        
+# give mean values
+plotCI(x=means, uiw=ciw, col="black", barcol="blue",
+labels=round(means,-3), xaxt="n", xlim=c(0,5) )
+axis(side=1, at=1:4, labels=names(tmp), cex=0.7)
+        
+# better yet, just use plotmeans ... #
+plotmeans( state.area ~ state.region )
