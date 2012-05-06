@@ -14,6 +14,7 @@ infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 path<-'C:/Users/parmentier/Dropbox/Data/Dissertation_paper2_04142012'
 path<-'//Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012'
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
+out_prefix <-"_05132012_"
 setwd(path)
 
 ####Start of th script##
@@ -29,6 +30,11 @@ data<-subset(data2,unfilled==0)
 date<-ISOdate(data$year,data$Month,data$Day)
 date2<-as.POSIXlt(as.Date(date))  #values of day=0 and month=1 are NA 
 data$DOY<-date2$yday #This gives the DOY (day of year) any day of year above 160 is potentially high severity
+
+data$dNBR_mean_NA<-data$dNBR_mean   #Creating a new variable dNBR with NA set for all values below -600
+data$dNBR_mean_NA[data$dNBR_mean_NA< -600]<-NA   #This assign NA to all values below -600
+
+### Adding variables for ANALYSIS OF SEVERITY
 
 # another example: create 5 categories for 
 attach(data)
@@ -56,7 +62,6 @@ plot(mean_area_PC1)
 
 lm5<-lm(FAC1_1~Severity, data=subset(data, BURNT==1))
 
-
 mean_Severity_PC1<-tapply(data_B$FAC1_1, data_B$Severity, mean, na.rm=TRUE)
 mean_Severity2_PC1<-tapply(data_B$FAC1_1, data_B$Severity2, mean, na.rm=TRUE)
 range(data2$Severity, na.rm=TRUE)
@@ -71,9 +76,11 @@ range(data$Severity, na.rm=TRUE)
 data_BURNT<-subset(data, BURNT==1)
 hist(data_BURNT$area_ha)
 
-# DO AVERAGE BY POLYGON!
+# CREATING AVERAGEA PER POLYGONS !
+
 Pol_ID<-tapply(data_BURNT$ID_POL,data_BURNT$ID_POL, max, na.rm=TRUE)
 Pol_area<-tapply(data_BURNT$area_ha,data_BURNT$ID_POL, mean, na.rm=TRUE)
+Pol_logarea<-log(Pol_area)
 Pol_PC1<-tapply(data_BURNT$FAC1_1,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_PC2<-tapply(data_BURNT$FAC2_1,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_dNBR<-tapply(data_BURNT$dNBR_mean,data_BURNT$ID_POL, mean, na.rm=TRUE)
@@ -84,7 +91,18 @@ Pol_Ft7_prop<-tapply(data_BURNT$Ft7_prop,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_Ft6_prop<-tapply(data_BURNT$Ft6_prop,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_Ft5_prop<-tapply(data_BURNT$Ft6_prop,data_BURNT$ID_POL, mean, na.rm=TRUE)
 
-data_pol<-as.data.frame(cbind(Pol_ID,Pol_PC1,Pol_PC2,Pol_dNBR,Pol_DOY,Pol_area,Pol_Severity,Pol_Severity,Pol_Ft7_prop,Pol_Ft6_prop,Pol_Ft5_prop))
+#binding everything in a dataframe
+data_pol<-as.data.frame(cbind(Pol_ID,Pol_PC1,Pol_PC2,Pol_dNBR,Pol_DOY,Pol_area,Pol_logarea,Pol_Severity,Pol_Severity,Pol_Ft7_prop,Pol_Ft6_prop,Pol_Ft5_prop))
+#Save in a textfile
+write.table(data_pol, file= paste(path,"/","data_pol_",out_prefix,".txt",sep=""), sep=",")
+
+#To summarize data by polygon, one can also use "aggregate for all or the selected variables!!
+#test2<-aggregate(cbind(dNBR_mean_NA, FAC1_1)~F_type, data=subset(data,BURNT==1), mean)
+var_BURNT<-names(data_BURNT)
+
+plot(Pol_Ft7_prop, Pol_PC1)
+
+data_pol2<-aggregate(data_BURNT[,3]~ID_POL, data=data_BURNT, mean, na.rm=TRUE) #FOR dNBR you can have it in a loop.
 
 attach(data_pol)
 data_pol$Severity3[Pol_DOY>=160 & Pol_area>=60000] <- 1
@@ -103,8 +121,34 @@ lm8<-lm(Pol_PC1~log(Pol_area))
 lm8<-lm(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600))
 
 #
+
+# SEVERITY AT THE POLYGON LEVEL: ANALYSIS FOR PAPER
+
+mean_Pol_Severity_PC1<-tapply(data_pol$Pol_PC1, data_pol$Pol_Severity, mean, na.rm=TRUE)
+x<- mean_Pol_Severity_PC1[1:2]
+#X11(width=55,height=45)
+
+plot(c(0,1), x, xlim=c(-.2, 1.2), ylim=c(-.4,1), type="l", axes=FALSE,
+     col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
+points(c(0,1), x, pch=1)
+axis(1, at=c(0,1)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+box()    #This draws a box...
+
+savePlot(paste("Boolean_burnt_severity_",out_prefix,".tiff", sep=""), type="tiff")
+tiff(filename=paste(path,"Boolean_burnt_severity_t_",out_prefix,".tiff", sep=""))
+
+## Plot ofr log of area...
+plot(Pol_logarea, Pol_PC1)
+plot(Pol_logarea, Pol_PC1, xlim=c(4, 13), ylim=c(-2,2), type="p", axes=FALSE,
+     col="black", cex=0.7,xlab="FIRE SIZE (LOG OF AREA IN HA)", ylab="MEAN PC1 SCORES")
+#points(c(0,1), x, pch=1) #Note that cex is used for hte size of the symbol to be used.
+axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+box()    #This draws a box...
 lm9<-lm(Pol_PC1~Pol_Severity)
 
+lab<-c("NW","LSH", "HSH","MIX","DEC","EG")
 
 ###THIS PART O FHE CODE ANALYSIS THE RELATIONSHIP BETWEEN PC1 SCORES AND LAND COVER TYPE PROPORTIONS                                 
 #Analysis based on the proportion of Fuel type
@@ -143,33 +187,118 @@ lm12<-lm(mean_PC1_cat_prop5~index)
 boxplot(data$FAC1_1~data$Severity
         
   
-#LAND COVER                                 
+#LAND COVER           
+# 7: B-W spruce (evergreen forest)
+# 6: Deciduous forest
+# 5: mixed forest
+# 4: high shrub (shrub)
+# 3: low shrub (dwarf shrub)
+# 2: grassland
+# 1: other
+# 0: NA
+
 # another example: create 5 categories for 
 attach(data)
-data$F_type2[F_type<3] <- 1
-data$F_type2[F_type==3] <- 2
-data$F_type2[F_type==4] <- 3
-data$F_type2[F_type==5] <- 4
-data$F_type2[F_type==6] <- 5
-data$F_type2[F_type==7] <- 6
+data$F_t1[F_type==0] <- NA #Assigning NA to category 0
+data$F_t1[F_type==1] <- 1
+data$F_t1[F_type==2] <- 2
+data$F_t1[F_type==3] <- 3
+data$F_t1[F_type==4] <- 4
+data$F_t1[F_type==5] <- 5
+data$F_t1[F_type==6] <- 6
+data$F_t1[F_type==7] <- 7      
+detach(data)
+        
+# another example: create 5 categories for 
+attach(data)
+data$F_t2[F_type<3] <- 1 #Merging 2,1,0
+data$F_t2[F_type==3] <- 2
+data$F_t2[F_type==4] <- 3
+data$F_t2[F_type==5] <- 4
+data$F_t2[F_type==6] <- 5
+data$F_t2[F_type==7] <- 6
 detach(data)
         
 attach(data)
-data$F_type3[F_type<3] <- 1
-data$F_type3[F_type==3] <- 2
-data$F_type3[F_type==4] <- 3
-data$F_type3[F_type==5] <- 4
-data$F_type3[F_type==6] <- 5
-data$F_type3[F_type==7] <- 6
+data$F_t3[F_type<3] <- NA #Merging 2,1,0 and assigning 0
+data$F_t3[F_type==3] <- 1 # low shrub (dwarf shrub) (LSH)
+data$F_t3[F_type==4] <- 2 # high shrub (shrub) (HSH)
+data$F_t3[F_type==5] <- 3 # mixed forest (MXF)
+data$F_t3[F_type==6] <- 4 # Deciduous forest (DEC)
+data$F_t3[F_type==7] <- 5 # B-W spruce (evergreen forest) (EGF)
 detach(data)
+        
+data_BURNT<-subset(data, BURNT==1)
+        
+boxplot(data_BURNT$FAC1_1~data_BURNT$F_t1,outline=FALSE)
+boxplot(data_BURNT$FAC1_1~data_BURNT$F_t3,outline=FALSE)
+        
+lm_F_t1<-lm(data_BURNT$FAC1_1~data_BURNT$F_t1)        
+lm_F_t3<-lm(data_BURNT$FAC1_1~data_BURNT$F_t3)    
 
-data$F_type_f<-as.factor(data$F_type, labels=c("NA","OTH","GRA","LSH","HSH","MXF","DEC","EGF"))
+mean_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_type, mean, na.rm=TRUE)
+mean_dNBR_t1<-tapply(data_BURNT$dNBR_mean_NA,data_BURNT$F_type, mean, na.rm=TRUE)
+mean_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, mean, na.rm=TRUE)
+sd_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, sd, na.rm=TRUE)
 
+x_cat<-c("LSH","HSH", "MX", "DEC", "EGF")
+data_BURNT$F_type_f<-factor(data_BURNT$F_t3, labels=x_cat, exclude="NULL")
+x<- mean_PC1_t3
+
+#X11(width=55,height=45)
+        
+plot(c(1:5), x, xlim=c(.8, 5), ylim=c(-.4,1), type="l", axes=FALSE,
+        col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
+points(c(1:5), x, pch=1)
+axis(1, at=c(1,5)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+box()    #This draws a box...
+        
+plot(x)        
+        
+plot(x_cat, x, xlim=c(-.2, 5), ylim=c(-.4,1), type="l", axes=FALSE,
+        col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
+points(c(0,5), x, pch=1)
+axis(1, at=c(0,5)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+box()    #This draws a box...
+        
+mean_PC1_type3<-tapply(data$FAC1_1,data_BURNT$F_type3, mean, na.rm=TRUE)     
+        
+data$F_type_f<-as.factor(data$F_type, labels=c("NA","OTH","GRA","LSH","HSH","MXF","DEC","EGF"), exclude="NULL")
+data$F_type_f<-factor(data$F_type, labels=c("NA","OTH","GRA","LSH","HSH","MXF","DEC","EGF"), exclude="NULL")
+
+lm13<-lm(data$FAC1_1~data$F_type3, subset(data, BURNT==1))
+lm13<-lm(data$FAC1_1~data$F_type_f, subset(data, BURNT==1))
+lm13<-lm(Pol_PC1~data$F_type)
 lm14<-lm(Pol_PC1~Pol_Ft7_prop)
 mean_PC1_type2<-tapply(data$FAC1_1,data$F_type2, mean, na.rm=TRUE)
-        
+
 mean_PC1_type<-tapply(data$FAC1_1,data$F_type, mean, na.rm=TRUE)
-mean_dNBR_type<-tapply(data$FAC1_1,data$dNBR_mean, mean, na.rm=TRUE)
+mean_dNBRN_type<-tapply(data$dNBR_mean_NA,data$F_type, mean, na.rm=TRUE)
+
+test<-aggregate(dNBR_mean_NA~F_type, data=data, mean) #This aggregates by F_type class in a data.frame 
+test<-aggregate(dNBR_mean_NA~F_type, data=subset(data,BURNT==1), mean) #This aggregates by F_type class in a data.frame 
+                                                                       #taking into account only the burnt pixel
+
+test3<-aggregate(data, by=list(data$ID_POL), data=subset(data,BURNT==1), FUN=mean, na.rm=TRUE)
+test2<-aggregate(cbind(dNBR_mean_NA, FAC1_1)~F_type, data=subset(data,BURNT==1), mean)
+
+plot(dNBR_mean_NA~F_type, data=test2)
+plot(FAC1_1~F_type, data=test2)
+boxplot(FAC1_1~F_type, data=data)
+
+## Land cover 7
+plot(Pol_Ft7_prop, Pol_PC1)
+plot(Pol_Ft7_prop, Pol_PC1, xlim=c(0, 1), ylim=c(-2,2), type="p", axes=FALSE,
+    col="black", cex=0.7,xlab="PROPORTION OF EVERGREEN FOREST", ylab="MEAN PC1 SCORES")
+#points(c(0,1), x, pch=1)
+axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+box()    #This draws a box...
+        
+boxplot(data_BURNT$FAC1_1~data_BURNT$F_type3)        
+        
 plot(mean_PC1_type2)
 table(data$F_type2) # This gives the frequency per category
 boxplot(data$FAC1_1~data$F_type2, subset(data, BURNT==1))     
@@ -224,7 +353,6 @@ detach(d14b)
 #First show average for burnt scars 
 d14b_B<-subset(d14b, unfilled==0 & BURNT==1)
 listn<-names(d14b_B)
-
                   
 i=0
 j=0  
@@ -241,4 +369,5 @@ plot(y[,1])
                      
 mean_PC1_HL1_NDVIA0_y1<-tapply(d14b_B$NDVI.A0.y1,d14b_B$PC1_HL1, mean, na.rm=TRUE)
 mean_PC1_HL1_NDVIA0_y1<-tapply(d14b_B$NDVI.A0.y1,d14b_B$PC1_HL1, mean, na.rm=TRUE)
-  
+        
+        
