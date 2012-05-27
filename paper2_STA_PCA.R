@@ -18,6 +18,13 @@ out_prefix <-"_05132012_"
 setwd(path)
 
 ####Start of th script##
+091612  0.00	46.50	24.80	5.80	15.50	0.00
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+092612  0.00	45.30	13.00	3.50	8.10	0.00
+092712	0.00	45.30	14.00	2.20	6.90	0.00
+092812	0.00	45.30	16.70	3.60	9.10	0.00
+092912	0.00	45.30	15.30	6.70	11.60	0.00
+093012	0.00	45.30	16.20	4.80	9.20	    
 
 temp<-read.csv(paste(path,"/",infile1, sep=""), header=TRUE, na.strings="#NULL!")
 data_extract<-read.csv(paste(path,"/",infile2,sep=""))
@@ -164,7 +171,7 @@ mean_Severity_PC1<-tapply(Pol_PC1, Pol_Severity, mean, na.rm=TRUE)
 plot(Pol_PC1, Pol_Ft7_prop)    
 plot(log(Pol_Ft5_prop), Pol_PC1)
 lm9<-lm(Pol_PC1~log(Pol_Ft6_prop), data=data_pol)
-lm9<-lm(Pol_PC1~Pol_Ft6_prop, data=data_pol)
+lm9<-lm(log(Pol_Ft5_prop)~Pol_PC1)
 lm10<-lm(mean_PC1_cat_prop7~index)
 
 #Analysis based on the proportion of Fuel type
@@ -199,34 +206,34 @@ boxplot(data$FAC1_1~data$Severity
 
 # another example: create 5 categories for 
 attach(data)
-data$F_t1[F_type==0] <- NA #Assigning NA to category 0
-data$F_t1[F_type==1] <- 1
-data$F_t1[F_type==2] <- 2
-data$F_t1[F_type==3] <- 3
-data$F_t1[F_type==4] <- 4
-data$F_t1[F_type==5] <- 5
-data$F_t1[F_type==6] <- 6
-data$F_t1[F_type==7] <- 7      
+data$F_t1[F_type.1==0] <- NA #Assigning NA to category 0
+data$F_t1[F_type.1==1] <- 1
+data$F_t1[F_type.1==2] <- 2
+data$F_t1[F_type.1==3] <- 3
+data$F_t1[F_type.1==4] <- 4
+data$F_t1[F_type.1==5] <- 5
+data$F_t1[F_type.1==6] <- 6
+data$F_t1[F_type.1==7] <- 7      
 detach(data)
         
 # another example: create 5 categories for 
 attach(data)
-data$F_t2[F_type==1] <- NA #Assigning NA to category 1 (Other)
-data$F_t2[F_type==2] <- 1 #Assigning NA to category 1 (Other)
-data$F_t2[F_type==3] <- 2
-data$F_t2[F_type==4] <- 3
-data$F_t2[F_type==5] <- 4
-data$F_t2[F_type==6] <- 5
-data$F_t2[F_type==7] <- 6
+data$F_t2[F_type.1==1] <- NA #Assigning NA to category 1 (Other)
+data$F_t2[F_type.1==2] <- 1 #Assigning NA to category 1 (Other)
+data$F_t2[F_type.1==3] <- 2
+data$F_t2[F_type.1==4] <- 3
+data$F_t2[F_type.1==5] <- 4
+data$F_t2[F_type.1==6] <- 5
+data$F_t2[F_type.1==7] <- 6
 detach(data)
         
 attach(data)
-data$F_t3[F_type<3] <- NA #Merging 2,1,0 and assigning 0
-data$F_t3[F_type==3] <- 1 # low shrub (dwarf shrub) (LSH)
-data$F_t3[F_type==4] <- 2 # high shrub (shrub) (HSH)
-data$F_t3[F_type==5] <- 3 # mixed forest (MXF)
-data$F_t3[F_type==6] <- 4 # Deciduous forest (DEC)
-data$F_t3[F_type==7] <- 5 # B-W spruce (evergreen forest) (EGF)
+data$F_t3[F_type.1<3] <- NA #Merging 2,1,0 and assigning 0
+data$F_t3[F_type.1==3] <- 1 # low shrub (dwarf shrub) (LSH)
+data$F_t3[F_type.1==4] <- 2 # high shrub (shrub) (HSH)
+data$F_t3[F_type.1==5] <- 3 # mixed forest (MXF)
+data$F_t3[F_type.1==6] <- 4 # Deciduous forest (DEC)
+data$F_t3[F_type.1==7] <- 5 # B-W spruce (evergreen forest) (EGF)
 detach(data)
         
 data_BURNT<-subset(data, BURNT==1)
@@ -250,13 +257,14 @@ mean_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, mean, na.rm=TRUE)
 sd_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t1, sd, na.rm=TRUE) #This contains the standard deviation for
                                                                      #PC1 and the different land covers.
 sd_PC1_t2<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t2, sd, na.rm=TRUE)
+sd_dNBR_t2<-tapply(data_BURNT$dNBR_mean_NA,data_BURNT$F_t2, sd, na.rm=TRUE)   
         
 x_cat<-c("NWV","LSH","HSH", "MX", "DEC", "EGF")
 data_BURNT$F_type_f<-factor(data_BURNT$F_t2, labels=x_cat, exclude="NULL")
 means<- mean_PC1_t2
 stdev<-sd_PC1_t2
         
-#PLOT WITH STD_DEV AS  WIDTH
+#PLOT WITH STD_DEV AS  WIDTH FOR PC1
 tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
 means <- sapply(tmp, mean)
 stdev <- sqrt(sapply(tmp, var))
@@ -267,22 +275,27 @@ plotCI(x=means, uiw=ciw, col="black", barcol="blue",
        labels=round(means,-3), xaxt="n", xlim=c(1,6),ylim=c(-1,2), xlab="LAND COVER TYPES",ylab="PC1 SCORES")
 axis(side=1, at=1:6, labels=x_cat, cex=0.7)
 
+####PLOT WITH STD_DEV AS  WIDTH FOR PC1
+tmp   <- split(data_BURNT$dNBR_mean_NA, data_BURNT$F_t2) #This split the data into list for the 6 categories
+means <- sapply(tmp, mean,na.rm=TRUE)
+stdev <- sqrt(sapply(tmp, var,na.rm=TRUE))
+n     <- sapply(tmp,length)
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=means, uiw=ciw, col="black", barcol="blue",
+        labels=round(means,-3), xaxt="n", xlim=c(1,6),ylim=c(-100,500), xlab="LAND COVER TYPES",ylab="dNBR")
+        axis(side=1, at=1:6, labels=x_cat, cex=0.7)
 ###
-plot(c(1:6), x, xlim=c(.8, 6), ylim=c(-.8,2), type="p", axes=FALSE,
-        col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
-points(c(1:6), x, pch=1)
-axis(1, at=c(1,6)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
-axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+## Land cover 7: proportion of evergreen forest
+plot(Pol_Ft7_prop, Pol_PC1)
+plot(Pol_Ft7_prop, Pol_PC1, xlim=c(0, 1), ylim=c(-2,2), type="p", axes=FALSE,
+col="black", cex=0.7,xlab="PROPORTION OF EVERGREEN FOREST", ylab="MEAN PC1 SCORES")
+      #points(c(0,1), x, pch=1)
+      axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+      axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
 box()    #This draws a box...
-        
-        
-plot(x_cat, x, xlim=c(-.2, 5), ylim=c(-.4,1), type="l", axes=FALSE,
-        col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
-points(c(0,5), x, pch=1)
-axis(1, at=c(0,5)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
-axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
-box()    #This draws a box...
-        
+abline(Pol_PC1,Pol_Ft7_prop)  
+          
 mean_PC1_type3<-tapply(data$FAC1_1,data_BURNT$F_type3, mean, na.rm=TRUE)     
         
 data$F_type_f<-as.factor(data$F_type, labels=c("NA","OTH","GRA","LSH","HSH","MXF","DEC","EGF"), exclude="NULL")
@@ -308,15 +321,7 @@ plot(dNBR_mean_NA~F_type, data=test2)
 plot(FAC1_1~F_type, data=test2)
 boxplot(FAC1_1~F_type, data=data)
 
-## Land cover 7
-plot(Pol_Ft7_prop, Pol_PC1)
-plot(Pol_Ft7_prop, Pol_PC1, xlim=c(0, 1), ylim=c(-2,2), type="p", axes=FALSE,
-    col="black", cex=0.7,xlab="PROPORTION OF EVERGREEN FOREST", ylab="MEAN PC1 SCORES")
-#points(c(0,1), x, pch=1)
-axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
-axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
-box()    #This draws a box...
-        
+
 boxplot(data_BURNT$FAC1_1~data_BURNT$F_t3)        
 plotmeans(data_BURNT$FAC1_1~data_BURNT$F_t2)        
 
