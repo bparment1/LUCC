@@ -18,26 +18,39 @@ library(multcomp)
 library(rasterVis)
 ###Parameters and arguments
 
-infile1<-"ghcn_or_tmax_b_04142012_OR83M.shp"
+infile1<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.shp"
 #infile2<-"dates_interpolation_03052012_2dates_test.txt"
-infile2<-"dates_interpolation_03052012.txt"                                          #List of 10 dates for the regression
+infile2<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.shp"                                          #Ecoregions...
 infile3<-"Change_image9_parameters_CMK.rst"
+infile4<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.rst" #Seg ID
 #outfile
 path<-"/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Paper1_sta_revision_12202011"
 #path<-"C:/Users/parmentier/Dropbox/Data/Dissertation_paper1_07142012/Paper1_sta_revision_12202011"
 setwd(path)
 
-prop<-0.3                                                                           #Proportion of testing retained for validation   
+thresholds<- c(0.05,0.025)                                                                           #Proportion of testing retained for validation   
 seed_number<-100
 out_prefix<-"_07132012_multicomp_1"
 
 #######START OF THE SCRIPT #############
 ref<-readGDAL(infile3)
-l1<-list.files(pattern="_MK_P.rst")
+l1<-list.files(pattern="_MK_P.rst") #RENAME ???
+l3<-list.files(pattern=".rst") # all rst files
+
 l2<-list.files(pattern="_CMK_P_reclassed.rst")
 s1<-stack(l1) #Create a stack from the list of files/layers
 s2<-stack(l2)
 
+seg_id<-raster(infile4)
+seg_id[seg_id==0] <- NA   #Reclassifying category 0 in
+mask_alaska<-seg_id
+mask_alaska[mask_alaska>0]<-1      #There are 3,286,057 NA pixels
+s1<-mask(s1,mask_alaska)   #This assigns NA to all values from s1 stack that are NA in the mask_land_NA
+
+# CREATE A MASK FROM NA??
+
+
+fsgid<-as.data.frame(freq(seg_id)) #Note that fsgid already contains the count of number of pixels per seg
 s1_1<-raster(s1, layer=1)  #Select layer 1 from the stack
 s1_1b<-subset(s1,1)        #subset layer 1 from stack using subset command
 s2_1<-raster(s2, layer=1)  #This is a boolean layer!!
@@ -50,41 +63,64 @@ s2_sgdf<-as(s2,"SpatialGridDataFrame") #Conversion to spatial grid data frame
 
 #projection(silverdollar) <- "+proj=utm +zone=15 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
-freq_s2_1<-freq(s2_1)  #Calculate the number of pixels in each category in the raster...
-f<-l1[1]  #first file with .rst extension
-a1<-raster(f)   #Create a R object of the RasterLayer type
-a1              #Print the summary
-plot(a1, main="First test")        #Plot the image
-plot(a1, xlab = "Easting (m)", ylab = "Northing (m)", main="Alaska")
-inMemory(a1)                       #Check if the file is in memory...
+#START CODE HERE
 
-#CONVERSION
-rc<-raster(ref)
-freq(rc)
-rc[rc==0] <- NA   #Reclassifying category 0 in
-rc1_2 <- rc==1 | rc==2 #Reclassify for category 1 and 2, note that this creates a boolean layer...
-count(rc1_2,0)    #This counts the number of 0 values in the raster rc1_2
+#Loop through the number of threshold desired
 
-s1_1_p005<-s1_1>0.05
-a1_g<-as(a1,"SpatialGridDataFrame") #Conversion to spatial grid data frame
+# PART 1 use 5% and 2.5% threshold for p
+alpha_adj1<-0.05/nlayers(s1) #Bonferroni adjustment
+alpha_adj2<-0.01
+thresholds<-(c(thresholds,alpha_adj1,alpha_adj2))
 
-a1_s<-raster(a1_g)
-image(a1_g)
-t1<-a1*2                           #Create new raster by multiplying values by 2
-plot(t1, main="This is the second test")   #Plot the modified file
+#s1_t1<-s1<0.025
+s1_t1<-s1<thresholds[1] #0.05
 
-test<-values(t1)       #This extract values of the raster into a numeric object
-t1<-clearValues(t1)     #Remove values from memory
+s1_t2<-s1<0.05
+s1_t3<-s1<alpha_adj1
 
-levelplot(s1_1)  #Using rasterVis option
-levelplot(s1)    #UPlots 9 images using rasterVis option
-hist(s1_1)       #uses only certain percentage of image (sampling)
-histogram(s1_1, breaks=100)  #Uses options from rasterVis
+# PART 2 use Bonferroni ajdustement?
+#sum everthing first??
 
-t1_d<-as.data.frame(t1)           #Convert the image in a data frame...Could use spatial grid data frame...
+test<-zonal(s1_t1,seg_id, stat=sum) #output is a matrix
+test2<-zonal(s1_t1,seg_id,stat=mean)
+colnames(test)<-c("SEGID","ALB_A0","ALB_A1","ALB_A2","LST_A0","LST_A1","LST_A2","NDVI_A0","NDVI_A1","NDVI_A2")
+colnames(test2)<-c("SEGID","ALB_A0","ALB_A1","ALB_A2","LST_A0","LST_A1","LST_A2","NDVI_A0","NDVI_A1","NDVI_A2")
 
-showOptions()
-writeRaster(t1, filename="R_test_Alaska2.rst",overwrite=TRUE)  #Writing the data in a raster file format...(IDRISI)
-writeRaster(s1_1_p005, filename="R_test_Alaska3.rst")  #Writing the data in a raster file format...(IDRISI)
+# PART 3 use multicomp
+nb_change<-rowSums(test[,2:10],na.rm=FALSE)
+#rownames(nb_change)<-NULL
+nb_change<-t(as.matrix(nb_change))
+colnames(nb_change)<-c("nb_c")
+test<-cbind(test,nb_change)
+data_change<-as.data.frame(test)
+drow<-as.data.frame(t(c(NA, 0, 0,0,0,0,0,0,0,0,0))) #Not necessary?
+names(drow)<-c("SEGID","ALB_A0","ALB_A1","ALB_A2","LST_A0","LST_A1","LST_A2","NDVI_A0","NDVI_A1","NDVI_A2","nb_c")
+
+data_change<-rbind(data_change,drow)
+data_change<-merge(data_change,fsgid,by.x="SEGID",by.y="value")
+data_change$prop_c<-(data_change$nb_c/data_change$count)*100 # DO THIS FOR EVERY STA PARAM
+
+tmp4<-as.numeric(data_change$nb_c>1)
+data_change$c_OR<-tmp4  #Seg is considered as change if it contians at least one change parmater
+
+change<-subs(seg_id,data_change,by=1, which=ncol(data_change), subsWithNA=FALSE) # Asssign values from column 1 based on seg ID 
+
+## WRITING OUT RESULTS IN FILES
+#CANHEIGHT[is.na(CANHEIGHT)]<-0
+s1_t1_1<-subset(s1_t1,1)
+rst_tmp<-s1_t1_1
+rst_tmp[is.na(rst_tmp)]<--999 #Assigning -999 to NA values
+data_name<-paste("change_","050","_",sep="")
+raster_name<-paste("Alaska_",data_name,out_prefix,".rst", sep="")
+writeRaster(rst_tmp, filename=raster_name,overwrite=TRUE)  #Writing the data in a raster file format...(IDRISI)
+
+mask_tmp<-mask_alaska
+mask_tmp[is.na(mask_tmp)]<--999 #Assigning -999 to NA values
+
+data_name<-paste("mask","Alaska_","_",sep="")
+raster_name<-paste("A_",data_name,out_prefix,".rst", sep="")
+writeRaster(mask_tmp, filename=raster_name,overwrite=TRUE)  #Writing the data in a raster file format...(IDRISI)
+
+# PART 5 use segid and count...threshold at 50%...
 
 #### End of script #####
