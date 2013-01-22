@@ -17,6 +17,13 @@ library(raster)
 library(multcomp)
 library(rasterVis)
 library(gdata)
+
+load_obj <- function(f)
+{
+  env <- new.env()
+  nm <- load(f, env)[1]
+  env[[nm]]
+}
 ###Parameters and arguments
 
 infile1<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.shp"
@@ -29,14 +36,20 @@ infile6<-"Alaska_globcover2009_ALB83_mask.rst"
 infile6b<-"Alaska_globcover2009_ALB83.rst"
 #outfile
 #path<-"/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Paper1_sta_revision_12202011"
-path_in<-"/home/parmentier/Data/Paper1_sta_revision_01192013"
-#path<-"C:/Users/parmentier/Dropbox/Data/Dissertation_paper1_07142012/Paper1_sta_revision_12202011"
+#path_in<-"/home/parmentier/Data/Paper1_sta_revision_01192013"
+path_in<-"/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Paper1_sta_revision_01192013"
+
 setwd(path_in)
 
 #thresholds<- c(0.05,0.025)  #which correspond to alpha 10% and 5% probability level since the test must from two side, do 1%??
-thresholds_input<- c(0.05)
+t<-0.05/9
+thresholds_input<- c(c(0.05,0.01),t)
 out_prefix<-"_01192013_multicomp_1"
+out_prefix<-"_01222013_multicomp_1"
+
 prop<-0.5
+correction=0 #if correction is 1 then doa 
+
 #######START OF THE SCRIPT #############
 ref<-readGDAL(infile3)
 l1<-list.files(pattern="_MK_P.rst") #RENAME ???
@@ -67,16 +80,20 @@ setValues(id_rast,1:ncell(s1_1)) #Assinging unique ID for every pixels
 #START CODE HERE
 
 # PART 1 use 5% and 2.5% threshold for p
-#if (correction==1){...}
-alpha_adj<- thresholds_input
-for (i in 1:length(thresholds_input)){
-  alpha_adj[i]<-thresholds_input[i]/nlayers(s1) #Bonferroni adjustment
+if (correction==1){
+  alpha_adj<- thresholds_input
+  for (i in 1:length(thresholds_input)){
+    alpha_adj[i]<-thresholds_input[i]/nlayers(s1) #Bonferroni adjustment
+  }
+  thresholds<-(c(thresholds_input,alpha_adj))
 }
-thresholds<-(c(thresholds_input,alpha_adj))
+
+if (correction==0){
+  thresholds<-c(thresholds_input)
+}
+
 thresh_lab<-as.character(round(thresholds*10000))
 
-
-i=1
 list_table_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
 list_xtab_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
 
@@ -182,37 +199,42 @@ for (i in 1:length(thresholds)){
 
 #mclapply(1:length(thresholds), runChangeFunction,mc.preschedule=FALSE,mc.cores = 9)
 
-save(list_xtab_change, file=paste("list_xtab_",(thresh_lab[i]),out_prefix,".RData",sep=""))
-save(list_table_change, file=paste("list_data_change_",(thresh_lab[i]),out_prefix,".RData", sep=""))
-
 #Plot change image for each sta parameter:
 #lf<-list.files(pattern=paste("^A_avg_seg_change_Alaska.*.",out_prefix,".*.rst$",sep=""))
+
 file_pat<-glob2rx(paste("*A_avg_seg_change_Alaska*","c_500",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
 lf<-mixedsort(list.files(pattern=file_pat))
 lf<-list.files(pattern=file_pat)
 #match("*nb*",lf)
 
 r_stack<-stack(lf)
-
-
+change_obj56<-load_obj("paper1_sta_change_obj_56_01192013_multicomp_1.RData")
 #file_pat<-glob2rx(paste(A_))
-l_f<-list.files(pattern=paste("^A_change_Alaska__c_OR_.*.",out_prefix,".*.rst$",sep=""))
+#l_f<-list.files(pattern=paste("^A_change_Alaska__c_OR_.*.",out_prefix,".*.rst$",sep=""))
 
 nb<-maxValue(ecoreg) #number of regions in the map
 plot(ecoreg,col=rainbow(nb))
 
 list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
-     
-for (i in 1:length(thresholds)){
-  change_OR<-raster(l_f[[i]])
-  change_OR<-mask(change_OR,mask_alaska)
-  xtab_eco<-crosstab(ecoreg,change_OR)
+file_pat<-glob2rx(paste("*A_Change_image9_param_avg_seg_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
+lfc<-list.files(pattern=file_pat)
+s_change_OR<-stack(lfc)
+change_OR<-mask(s_change_OR,mask_alaska)
+change_OR<- s_change_OR >0
+
+f_fire<-"MTBS_AK_2001_2009_IDR_ID.rst"
+r_fire<-raster(f_fire)
+r_fire<-mask(r_fire,mask_alaska)
+r_fire<- r_fire >0
+for (i in 1:nlayers(change_OR)){
+  xtab_eco<-crosstab(ecoreg,subset(change_OR,i))
   write.table(xtab_eco,file=paste("A_","xtab_tb_eco_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
+  xtab_fire<-crosstab(r_fire,subset(change_OR,i)) 
+  write.table(r_fire,file=paste("A_","xtab_tb_fire_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
   #list_xtab_eco[[i]]<-xtab_eco
-  
 }
 
-
 # PART 5 use segid and count...threshold at 50%...
+#Compare to threshold from pixels only...
 
 #### End of script #####
