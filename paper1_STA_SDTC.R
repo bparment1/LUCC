@@ -28,7 +28,7 @@ load_obj <- function(f)
 
 infile1<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.shp"
 infile2<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.rst"
-#infile2<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.shp"                                          #Ecoregions...
+infile2b<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.vct"                                          #Ecoregions...
 infile3<-"Change_image9_parameters_CMK.rst"
 infile4<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.rst" #Seg ID
 infile5<-"mask_land2.rst"
@@ -45,7 +45,7 @@ setwd(path_in)
 t<-0.05/9
 thresholds_input<- c(c(0.05,0.01),t)
 out_prefix<-"_01192013_multicomp_1"
-out_prefix<-"_01222013_multicomp_1"
+out_prefix<-"_01222013b_multicomp_1"
 
 prop<-0.5
 correction=0 #if correction is 1 then doa 
@@ -187,10 +187,10 @@ for (i in 1:length(thresholds)){
   table_change<-do.call(cbindX,list_xtab2) #bind data frame wiith columns and add NA if different length
   names(table_change)<-c("ALB_A0_c","ALB_A1_c","ALB_A2_c","LST_A0_c","LST_A1_c","LST_A2_c","NDVI_A0_c","NDVI_A1_c","NDVI_A2_c")
   table_change_paper<-as.data.frame(t(as.matrix(table_change)))
-  write.table(table_change_paper,file=paste("A_","table_change_paper_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
-  list_table_change[[i]]<-table_change_paper
-  list_xtab_change[[i]]<-list_xtab2 #?? change here
-  sta_change_obj<-list(data_change,list_xtab2,list_table_change)
+  write.table(table_change_paper,file=paste("A_","table_change_paper_seg_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
+  #list_table_change[[i]]<-table_change_paper
+  #list_xtab_change[[i]]<-list_xtab2 #?? change here
+  sta_change_obj<-list(data_change,list_xtab2,table_change_paper)
   names(sta_change_obj)<-c("dat_change_seg","list_xtab_change","table_change")
   save(sta_change_obj, file=paste("paper1_sta_change_obj_",(thresh_lab[i]),out_prefix,".RData", sep=""))
   #return(sta_change_obj)
@@ -199,42 +199,355 @@ for (i in 1:length(thresholds)){
 
 #mclapply(1:length(thresholds), runChangeFunction,mc.preschedule=FALSE,mc.cores = 9)
 
-#Plot change image for each sta parameter:
-#lf<-list.files(pattern=paste("^A_avg_seg_change_Alaska.*.",out_prefix,".*.rst$",sep=""))
-
-file_pat<-glob2rx(paste("*A_avg_seg_change_Alaska*","c_500",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
-lf<-mixedsort(list.files(pattern=file_pat))
-lf<-list.files(pattern=file_pat)
-#match("*nb*",lf)
-
-r_stack<-stack(lf)
-change_obj56<-load_obj("paper1_sta_change_obj_56_01192013_multicomp_1.RData")
-#file_pat<-glob2rx(paste(A_))
-#l_f<-list.files(pattern=paste("^A_change_Alaska__c_OR_.*.",out_prefix,".*.rst$",sep=""))
-
 nb<-maxValue(ecoreg) #number of regions in the map
 plot(ecoreg,col=rainbow(nb))
-
-list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
-file_pat<-glob2rx(paste("*A_Change_image9_param_avg_seg_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
-lfc<-list.files(pattern=file_pat)
-s_change_OR<-stack(lfc)
-change_OR<-mask(s_change_OR,mask_alaska)
-change_OR<- s_change_OR >0
 
 f_fire<-"MTBS_AK_2001_2009_IDR_ID.rst"
 r_fire<-raster(f_fire)
 r_fire<-mask(r_fire,mask_alaska)
 r_fire<- r_fire >0
+thresh_lab_tmp<-sort(thresh_lab, decreasing=TRUE)
 for (i in 1:nlayers(change_OR)){
   xtab_eco<-crosstab(ecoreg,subset(change_OR,i))
-  write.table(xtab_eco,file=paste("A_","xtab_tb_eco_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
+  write.table(xtab_eco,file=paste("A_","xtab_tb_eco_",(thresh_lab_tmp[i]),out_prefix,".txt", sep=""),sep=",")
   xtab_fire<-crosstab(r_fire,subset(change_OR,i)) 
-  write.table(r_fire,file=paste("A_","xtab_tb_fire_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
+  write.table(xtab_fire,file=paste("A_","xtab_tb_fire_",(thresh_lab_tmp[i]),out_prefix,".txt", sep=""),sep=",")
   #list_xtab_eco[[i]]<-xtab_eco
 }
 
-# PART 5 use segid and count...threshold at 50%...
+###### SAME ANALYSIS AT THE PIXEL LEVEL...
 #Compare to threshold from pixels only...
+list_table_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
+list_xtab_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
+
+i=2
+for (i in 1:length(thresholds)){
+  #plot(s1)
+  s1_t1 <- s1 < thresholds[i]
+  lf_change_list_param<-vector("list",nlayers(s1_t1))
+  names_rast<-c("ALB_A0_c","ALB_A1_c","ALB_A2_c","LST_A0_c","LST_A1_c","LST_A2_c","NDVI_A0_c","NDVI_A1_c","NDVI_A2_c")
+  list_xtab<-vector("list", nlayers(s1_t1))
+  list_xtab2<-vector("list", nlayers(s1_t1))
+  
+  for (j in 1:nlayers(s1_t1)){
+    data_name<-paste("change_pixels_","Alaska_",names_rast[j],"_",sep="")
+    raster_name<-paste("A_",data_name,(thresh_lab[i]),out_prefix,".rst", sep="")
+    writeRaster(subset(s1_t1,j), filename=raster_name,NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
+    lf_change_list_param[[j]]<-raster_name
+  }
+  ##
+  nb_c_rast<-stackApply(s1_t1, indices=rep(1,nlayers(s1_t1)),fun=sum,na.rm=TRUE)
+  nb_c_rast<-mask(nb_c_rast,mask_alaska)
+  data_name<-paste("Change_image9_param_pixels_","Alaska_","_",sep="")
+  raster_name<-paste("A_",data_name,(thresh_lab[i]),out_prefix,".rst", sep="")
+  writeRaster(nb_c_rast, filename=raster_name,NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
+  
+  ##Now create table...
+  for (j in 1:length(lf_change_list_param)){
+    param_rast<-raster(lf_change_list_param[[j]]) #STA param to crosstab
+    xtab<-crosstab(nb_c_rast,param_rast) #This contains the crosstab table 
+    list_xtab[[j]]<-xtab
+    #need to change here on 11/13/2012: done on 01/19/2013
+    if (ncol(xtab)==2){
+      xtab2<-as.data.frame(xtab[,2])  #drop the first colum only if there are two columns!!! otherwise add a 0 column??
+    }
+    if (ncol(xtab)==1){
+      colxtab<-rep(NA,length(lf_change_list_param)+1)
+      xtab2<-as.data.frame(colxtab)  #drop the first colum only if there are two columns!!! otherwise add a 0 column??
+    }
+    names(xtab2)<-names(lf_change_list_param)[j]
+    list_xtab2[[j]]<-xtab2   
+  }
+  #table_change<-do.call(cbind,list_xtab2)
+  table_change<-do.call(cbindX,list_xtab2) #bind data frame wiith columns and add NA if different length
+  names(table_change)<-c("ALB_A0_c","ALB_A1_c","ALB_A2_c","LST_A0_c","LST_A1_c","LST_A2_c","NDVI_A0_c","NDVI_A1_c","NDVI_A2_c")
+  table_change_paper<-as.data.frame(t(as.matrix(table_change)))
+  write.table(table_change_paper,file=paste("A_","pixels_table_change_paper_",(thresh_lab[i]),out_prefix,".txt", sep=""),sep=",")
+  #list_table_change[[i]]<-table_change_paper
+  #list_xtab_change[[i]]<-list_xtab2 #?? change here
+  sta_change_obj<-list(list_xtab2,table_change_paper)
+  names(sta_change_obj)<-c("list_xtab_change","table_change")
+  save(sta_change_obj, file=paste("paper1_sta_change_pixels_obj_",(thresh_lab[i]),out_prefix,".RData", sep=""))
+  
+}
+
+### LOADING AND EXAMINING RESULTS
+
+### Create table of %change for every level
+#list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
+file_pat<-glob2rx(paste("*A_Change_image9_param_avg_seg_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
+lfc<-mixedsort(list.files(pattern=file_pat))
+s_change_seg<-stack(lfc)
+
+file_pat<-glob2rx(paste("*A_Change_image9_*pixels*_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
+lfc<-mixedsort(list.files(pattern=file_pat))
+s_change_pix<-stack(lfc)
+
+s_change<-stack(s_change_seg,s_change_pix)
+s_change<-mask(s_change,mask_alaska)
+s_change_OR<- s_change > 0
+
+#Write out stack of number of change for each threshold level
+data_name<-paste("change_nb_c_rast_all_pixels_","Alaska_","_",sep="")
+raster_name<-paste("A_",data_name,out_prefix,".tif", sep="")
+writeRaster(s_change, filename=raster_name,NAflag=-999,bylayer=False,bandorder="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
+
+data_name<-paste("change_OR_rast_all_pixels_","Alaska_","_",sep="")
+raster_name<-paste("A_",data_name,out_prefix,".tif", sep="")
+writeRaster(s_change_OR, filename=raster_name,NAflag=-999,bylayer=False,bandorder="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
+
+#test<-stack("A_change_nb_c_rast_all_pixels_Alaska__56_01222013_multicomp_1.tif")
+#########Now create teh table...
+
+freq_r_stack<-function(r_stack){
+  list_area_tab<-vector("list",nlayers(r_stack))
+  for (j in 1:nlayers(r_stack)){
+    tmp<-freq(subset(r_stack,j))
+    tmp2<-na.omit(tmp)
+    if (j!=1){
+      list_area_tab[[j]]<-as.data.frame(tmp2[,2])
+    }
+    if (j==1){
+    list_area_tab[[j]]<-as.data.frame(tmp2)
+    }
+  }
+  table_freq<-do.call(cbindX,list_area_tab)
+  return(table_freq)
+}
+
+table_nc_pix<-freq_r_stack(s_change_pix)
+table_nc_seg<-freq_r_stack(s_change_seg)
+names(table_nc_pix)<-c("value",paste("t_",rev(thresh_lab),sep=""))  #rev to reverse the elements of a vector
+names(table_nc_seg)<-c("value",paste("t_",rev(thresh_lab),sep=""))  #rev to reverse the elements of a vector
+table_nc_pix[,1]<-0:8
+table_nc_seg[,1]<-0:7
+#write out table...
+write.table(table_nc_pix,file=paste("A_","pixels_table_nc_",out_prefix,".txt", sep=""),sep=",")
+write.table(table_nc_seg,file=paste("A_","seg_table_nc_",out_prefix,".txt", sep=""),sep=",")
+total_area<-freq(mask_alaska)[1,2]
+table_propnc_pix<-(100*table_nc_pix[,2:4]/total_area)
+table_propnc_pix
+### 
+
+list_obj<-mixedsort(list.files(pattern=paste(".*pixels.*",out_prefix,".*RData",sep="")))
+change_pix_56<-load_obj(list_obj[[1]])
+change_pix_100<-load_obj(list_obj[[2]])
+change_pix_500<-load_obj(list_obj[[3]])
+
+list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
+file_pat<-glob2rx(paste("*A_Change_image9_*pixels*_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
+lfc<-mixedsort(list.files(pattern=file_pat))
+s_change_OR<-stack(lfc)
+plot(s_change_OR)
+change_OR<-mask(s_change_OR,mask_alaska)
+change_OR<- s_change_OR >0
+
+## Plot specific results from pixels
+i=1
+list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
+file_pat<-glob2rx(paste("*A_change_*pixels*_Alaska*",thresh_lab[i],"*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
+lfc<-mixedsort(list.files(pattern=file_pat))
+s_change<-stack(lfc)
+s_change<-mask(s_change,mask_alaska)
+plot(s_change)
+
+#Now get the crosstab table
+#names(lf_change_list_param)<-c("ALB_A0_c","ALB_A1_c","ALB_A2_c","LST_A0_c","LST_A1_c","LST_A2_c","NDVI_A0_c","NDVI_A1_c","NDVI_A2_c")
+plot(seg_id)
+#scalebar(250000, type = 'bar', divs=4)
+#return(sta_change_obj)
+#quartz(height=9, width=9)
+#tmp <- nb_c_rast > 0
+#plot(tmp, col=c("black","red"), legend=FALSE)
+#plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
+#png(paste(plot_name,"_",out_prefix,".png", sep=""))
+#grid(nx=12,ny=10)
+legend("topright",legend=c("no change", "change"),pt.cex=0.9,fill=c("black","red"),bty="n")
+scalebar(250000, type = 'bar', divs=4)
+#no box around legend
+
+box()
+dev.off()
+ 
+###### CREATE MAP
+
+#Using plot system
+
+filename<-sub(".vct","",infile2b)                                             #Removing the extension from file.
+reg_outline<-readOGR(".", filename)
+
+plot(seg_id)
+scale_position<-click(ecoreg,xy=TRUE)
+scale_position<-scale_position[1,1:2]
+arrow_position<-click(ecoreg,xy=TRUE)
+arrow_position<-arrow_position[1,1:2]
+SpatialPolygonsRescale(layout.scale.bar(), offset = scale_position, 
+scale = 250000, fill=c("transparent","black"),plot.grid=FALSE)
+text(scale_position,"0")
+text(scale_position,"250,000")
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+#or use scale bar...
+
+plot(seg_id)
+scale_position<-click(ecoreg,xy=TRUE)
+scale_position<-scale_position[1,1:2]
+arrow_position<-click(ecoreg,xy=TRUE)
+arrow_position<-arrow_position[1,1:2]
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.8)
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+#Using sp plot
+p <- spplot(ecoreg) 
+library(grid)
+trellis.focus("panel",column=1,row=1)
+scale_position<-as.numeric(grid.locator())
+#ids<-panel.identify()
+trellis.unfocus()
+p+sp.layout("sp.text"
+#scale_position<-locator(type="p")
+#p + layer(sp.polygons(meuse.riv)) 
+#p + layer_(sp.polygons(meuse.riv)) 
+l2 = list("SpatialPolygonsRescale", layout.north.arrow(), offset = scale_position, 
+                      scale = 400)
+p+ sp.layout(l2))
+#l3 = list("SpatialPolygonsRescale", layout.scale.bar(), offset = c(180500,329800), 
+                      
+coordinates(meuse) <- ~x+y
+#scale_position<-click(meuse.grid)
+l2 = list("SpatialPolygonsRescale", layout.north.arrow(), offset = c(181300,329800), 
+          scale = 400)
+l3 = list("SpatialPolygonsRescale", layout.scale.bar(), offset = c(180500,329800), 
+          scale = 500, fill=c("transparent","black"))
+l4 = list("sp.text", c(180500,329900), "0")
+l5 = list("sp.text", c(181000,329900), "500 m")
+
+spplot(meuse, c("ffreq"), sp.layout=list(l2,l3,l4,l5), col.regions= "black", 
+       pch=c(1,2,3), key.space=list(x=0.1,y=.95,corner=c(0,1)))
+spplot(meuse, c("zinc", "lead"), sp.layout=list(l2,l3,l4,l5, which = 2),
+       key.space=list(x=0.1,y=.95,corner=c(0,1)))
+
+### Creating figures
+cat_names<-c("Alaska Peninsula montane Taiga",
+             "Alaska St Elias Range Tundra",
+             "Aleutian Islands tundra",
+             "Arctic coastal tundra",
+             "Arctic foothilss tundra",
+             "Beringia lowland tundra",
+             "Beringia upland tundra",
+             "Brooks-British range tundra",
+             "Cook Inlet taign",
+             "Copper Plateau taiga",
+             "Interior Alaska-Yukon lowland taiga",
+             "Interior Alaska-Yukon alpine tundra",
+             "Northern Cordillera forests",
+             "Ogilvie Mackenzie alpine tundra",
+             "Pacific Coastal Mountain icefiles and tundra")
+
+#col_palette<-ecoreg@legend@colortable
+nb<-length(unique(ecoreg))
+ecoreg@legend@colortable<-rainbow(nb)
+plot(ecoreg,col=rainbow(nb), colNA="transparent")
+plot(seg_id)
+#plot(RGB)...
+pal<-rainbow(nb)
+pal[11]<-"green"
+pal[12]<-"darkgreen"
+plot(ecoreg,col=c(colorRampPalette(pal)))
+
+###############
+##Figure 4: nubmer of change and change OR for 500 seg
+
+nb_c_500_seg<-raster("A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst")
+nb_c_500_seg_OR<- nb_c_500_seg >0
+col_mfrow<-2
+row_mfrow<-1
+png(filename=paste("Figure4_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
+                   width=col_mfrow*480,height=row_mfrow*480)
+par(mfrow=c(1,2))
+col_pal<-rev(terrain.colors(unique(nb_c_500_seg)))
+#plot(nb_c_500_seg,legend=false,col=col_pal)
+#plot(nb_c_500_seg,legend=FALSE,col=c("black",rev(terrain.colors(7))))
+#legend("topright",legend=c(0:7),title="Number of change",
+#       pt.cex=0.9,fill=c("black",rev(terrain.colors(7))),bty="n")
+plot(nb_c_500_seg,legend=FALSE,col=rev(terrain.colors(8)))
+legend("topright",legend=c(0:7),title="Number of change",
+       pt.cex=0.9,fill=rev(terrain.colors(8)),bty="n")
+plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+dev.off()
+#plot(seg_id)
+scale_position<-c("445853.1", "590521.4")
+scale_position<-click(nb_c_500_seg,xy=TRUE)
+scale_position<-scale_position[1,1:2]
+arrow_position<-click(ecoreg,xy=TRUE)
+arrow_position<-arrow_position[1,1:2]
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.8)
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+
+###############################
+##Figure 5: change 500 for LST
+
+LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
+plot(LSTA1_change,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+#plot(seg_id)
+scale_position<-c("445853.1", "590521.4")
+scale_position<-click(nb_c_500_seg,xy=TRUE)
+scale_position<-scale_position[1,1:2]
+arrow_position<-click(ecoreg,xy=TRUE)
+arrow_position<-arrow_position[1,1:2]
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.8)
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+
+###############################
+##Figure 8 and Figure 9: combined-- change 500 for NDVI A0 pix and seg
+
+NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
+plot(NDVIA0_change,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+
+###############################
+##Figure 8 and Figure 9: combined-- change 500 for NDVI A0 pix and seg
+
+NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
+plot(NDVIA0_change,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+NDVIA0_c_seg<-raster("A_avg_seg_change_Alaska__NDVI_A0_c_500_01222013b_multicomp_1.rst")
+plot(NDVIA0_c_seg,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+#plot(seg_id)
+scale_position<-c("445853.1", "590521.4")
+scale_position<-click(nb_c_500_seg,xy=TRUE)
+scale_position<-scale_position[1,1:2]
+arrow_position<-click(ecoreg,xy=TRUE)
+arrow_position<-arrow_position[1,1:2]
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.8)
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 
 #### End of script #####
