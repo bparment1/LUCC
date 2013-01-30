@@ -297,7 +297,7 @@ raster_name<-paste("A_",data_name,out_prefix,".tif", sep="")
 writeRaster(s_change_OR, filename=raster_name,NAflag=-999,bylayer=False,bandorder="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
 
 #test<-stack("A_change_nb_c_rast_all_pixels_Alaska__56_01222013_multicomp_1.tif")
-#########Now create teh table...
+#########Now Create table 5 for paper...
 
 freq_r_stack<-function(r_stack){
   list_area_tab<-vector("list",nlayers(r_stack))
@@ -458,96 +458,160 @@ pal[11]<-"green"
 pal[12]<-"darkgreen"
 plot(ecoreg,col=c(colorRampPalette(pal)))
 
-###############
-##Figure 4: nubmer of change and change OR for 500 seg
-
-nb_c_500_seg<-raster("A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst")
-nb_c_500_seg_OR<- nb_c_500_seg >0
-col_mfrow<-2
-row_mfrow<-1
-png(filename=paste("Figure4_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
-                   width=col_mfrow*480,height=row_mfrow*480)
-par(mfrow=c(1,2))
-col_pal<-rev(terrain.colors(unique(nb_c_500_seg)))
-#plot(nb_c_500_seg,legend=false,col=col_pal)
-#plot(nb_c_500_seg,legend=FALSE,col=c("black",rev(terrain.colors(7))))
-#legend("topright",legend=c(0:7),title="Number of change",
-#       pt.cex=0.9,fill=c("black",rev(terrain.colors(7))),bty="n")
-plot(nb_c_500_seg,legend=FALSE,col=rev(terrain.colors(8)))
-legend("topright",legend=c(0:7),title="Number of change",
-       pt.cex=0.9,fill=rev(terrain.colors(8)),bty="n")
-plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"))
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=0.9,fill=c("black","red"),bty="n")
-
-dev.off()
-#plot(seg_id)
-scale_position<-c("445853.1", "590521.4")
-scale_position<-click(nb_c_500_seg,xy=TRUE)
-scale_position<-scale_position[1,1:2]
-arrow_position<-click(ecoreg,xy=TRUE)
-arrow_position<-arrow_position[1,1:2]
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=0.8)
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
-
 ###############################
-##Figure 5: change 500 for LST
+##Figure 1: wwf ecoregion
+
+col_mfrow<-1
+row_mfrow<-1
+png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep=""),
+    width=col_mfrow*480,height=row_mfrow*480)
+#par(mfrow=c(1,2))
 
 LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
 plot(LSTA1_change,legend=FALSE,col=c("black","red"))
 legend("topright",legend=c("no change","change"),title="Change category",
        pt.cex=0.9,fill=c("black","red"),bty="n")
 
-#plot(seg_id)
-scale_position<-c("445853.1", "590521.4")
-scale_position<-click(nb_c_500_seg,xy=TRUE)
-scale_position<-scale_position[1,1:2]
-arrow_position<-click(ecoreg,xy=TRUE)
-arrow_position<-arrow_position[1,1:2]
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=0.8)
+         cex=0.7)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+dev.off()
+
+
+###############
+##Figure 4: nubmer of change and change OR for 500 seg
+
+#load images to plot
+nb_c_500_seg<-raster("A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst")
+nb_c_500_seg_OR<- nb_c_500_seg >0
+
+#set up the output file to plot
+col_mfrow<-2
+row_mfrow<-1
+png(filename=paste("Figure4_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
+                   width=col_mfrow*480,height=row_mfrow*480)
+par(mfrow=c(1,2))
+
+#set up plotting parameters
+#col_pal<-rev(terrain.colors(unique(nb_c_500_seg)))
+col_pal<-rev(terrain.colors(8))
+scale_position<-c(450000, 600000)
+arrow_position<-c(900000, 600000)
+
+##plot Fig 4a
+#plot(nb_c_500_seg,legend=FALSE,col=rev(terrain.colors(8)))
+plot(nb_c_500_seg,legend=FALSE,col=col_pal)
+legend("topright",legend=c(0:7),title="Number of change",
+       pt.cex=0.9,fill=rev(terrain.colors(8)),bty="n")
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.7)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+##plot Fig 4b
+plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.7)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+dev.off()
+
+###############################
+##Figure 5: change 500 for LST
+
+col_mfrow<-1
+row_mfrow<-1
+png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep=""),
+    width=col_mfrow*480,height=row_mfrow*480)
+#par(mfrow=c(1,2))
+
+LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
+plot(LSTA1_change,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.7)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+dev.off()
+
+###############################
+##Figure 6: barplot land cover categories: change per number and shape parameters
+
+
+
+
+###############################
+##Figure 7: change 500 with fire polygons???
+
+col_mfrow<-1
+row_mfrow<-1
+png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep=""),
+    width=col_mfrow*480,height=row_mfrow*480)
+#par(mfrow=c(1,2))
+
+LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
+plot(LSTA1_change,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.7)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+dev.off()
+
+###############################
+##Figure 8: combined-- change 500 for NDVI A0 pix and seg
+col_mfrow<-1
+row_mfrow<-2
+png(filename=paste("Figure_8_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
+    width=col_mfrow*960,height=row_mfrow*960)
+par(mfrow=c(2,1))
+
+##Figure 8a
+NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
+plot(NDVIA0_c_pix,legend=FALSE,col=c("black","red"))
+legend("topright",legend=c("no change","change"),title="Change category",
+       pt.cex=0.9,fill=c("black","red"),bty="n")
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=0.7)
+#this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 
-###############################
-##Figure 8 and Figure 9: combined-- change 500 for NDVI A0 pix and seg
-
-NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
-plot(NDVIA0_change,legend=FALSE,col=c("black","red"))
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=0.9,fill=c("black","red"),bty="n")
-
-
-###############################
-##Figure 8 and Figure 9: combined-- change 500 for NDVI A0 pix and seg
-
-NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
-plot(NDVIA0_change,legend=FALSE,col=c("black","red"))
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=0.9,fill=c("black","red"),bty="n")
-
+##Figure 8b
 NDVIA0_c_seg<-raster("A_avg_seg_change_Alaska__NDVI_A0_c_500_01222013b_multicomp_1.rst")
 plot(NDVIA0_c_seg,legend=FALSE,col=c("black","red"))
 legend("topright",legend=c("no change","change"),title="Change category",
        pt.cex=0.9,fill=c("black","red"),bty="n")
-
-#plot(seg_id)
-scale_position<-c("445853.1", "590521.4")
-scale_position<-click(nb_c_500_seg,xy=TRUE)
-scale_position<-scale_position[1,1:2]
-arrow_position<-click(ecoreg,xy=TRUE)
-arrow_position<-arrow_position[1,1:2]
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=0.8)
+         cex=0.7)
+#this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+dev.off()
 
 #### End of script #####
