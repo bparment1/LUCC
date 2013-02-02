@@ -44,8 +44,9 @@ setwd(path_in)
 #thresholds<- c(0.05,0.025)  #which correspond to alpha 10% and 5% probability level since the test must from two side, do 1%??
 t<-0.05/9
 thresholds_input<- c(c(0.05,0.01),t)
-out_prefix<-"_01192013_multicomp_1"
-out_prefix<-"_01222013b_multicomp_1"
+#out_prefix<-"_01192013_multicomp_1"
+#out_prefix<-"_01222013b_multicomp_1"
+out_prefix<-"_01222013_multicomp_1"
 
 prop<-0.5
 correction=0 #if correction is 1 then doa 
@@ -196,25 +197,6 @@ for (i in 1:length(thresholds)){
   #return(sta_change_obj)
 }
 
-
-#mclapply(1:length(thresholds), runChangeFunction,mc.preschedule=FALSE,mc.cores = 9)
-
-nb<-maxValue(ecoreg) #number of regions in the map
-plot(ecoreg,col=rainbow(nb))
-
-f_fire<-"MTBS_AK_2001_2009_IDR_ID.rst"
-r_fire<-raster(f_fire)
-r_fire<-mask(r_fire,mask_alaska)
-r_fire<- r_fire >0
-thresh_lab_tmp<-sort(thresh_lab, decreasing=TRUE)
-for (i in 1:nlayers(change_OR)){
-  xtab_eco<-crosstab(ecoreg,subset(change_OR,i))
-  write.table(xtab_eco,file=paste("A_","xtab_tb_eco_",(thresh_lab_tmp[i]),out_prefix,".txt", sep=""),sep=",")
-  xtab_fire<-crosstab(r_fire,subset(change_OR,i)) 
-  write.table(xtab_fire,file=paste("A_","xtab_tb_fire_",(thresh_lab_tmp[i]),out_prefix,".txt", sep=""),sep=",")
-  #list_xtab_eco[[i]]<-xtab_eco
-}
-
 ###### SAME ANALYSIS AT THE PIXEL LEVEL...
 #Compare to threshold from pixels only...
 list_table_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
@@ -271,33 +253,75 @@ for (i in 1:length(thresholds)){
   
 }
 
-### LOADING AND EXAMINING RESULTS
+#mclapply(1:length(thresholds), runChangeFunction,mc.preschedule=FALSE,mc.cores = 9)
 
+########## BEFORE EXAMINING RESULTS WRITE OUT CHANGES TO FILE
 ### Create table of %change for every level
 #list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
-file_pat<-glob2rx(paste("*A_Change_image9_param_avg_seg_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
+file_pat<-glob2rx(paste("*A_Change_image9_param_avg_seg_Alaska*",out_prefix,"*.rst",sep="")) #Search for files in relation to fusion                  
 lfc<-mixedsort(list.files(pattern=file_pat))
 s_change_seg<-stack(lfc)
+#A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst
 
 file_pat<-glob2rx(paste("*A_Change_image9_*pixels*_Alaska*",out_prefix,"*rst",sep="")) #Search for files in relation to fusion                  
 lfc<-mixedsort(list.files(pattern=file_pat))
 s_change_pix<-stack(lfc)
-
+A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst
 s_change<-stack(s_change_seg,s_change_pix)
 s_change<-mask(s_change,mask_alaska)
 s_change_OR<- s_change > 0
 
 #Write out stack of number of change for each threshold level
-data_name<-paste("change_nb_c_rast_all_pixels_","Alaska_","_",sep="")
+data_name<-paste("change_nb_c_rast_all_pix_seg_","Alaska_","_",sep="")
 raster_name<-paste("A_",data_name,out_prefix,".tif", sep="")
-writeRaster(s_change, filename=raster_name,NAflag=-999,bylayer=False,bandorder="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
+writeRaster(s_change, filename=raster_name,NAflag=-999,bylayer=False,
+            bandorder ="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
 
-data_name<-paste("change_OR_rast_all_pixels_","Alaska_","_",sep="")
-raster_name<-paste("A_",data_name,out_prefix,".tif", sep="")
-writeRaster(s_change_OR, filename=raster_name,NAflag=-999,bylayer=False,bandorder="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
+####COMPARE RESULTS TO MTBS FIRE DATA SET AND ECOREGION########
+## Create table 4 for paper
 
-#test<-stack("A_change_nb_c_rast_all_pixels_Alaska__56_01222013_multicomp_1.tif")
-#########Now Create table 5 for paper...
+nb<-maxValue(ecoreg) #number of regions in the map
+plot(ecoreg,col=rainbow(nb))
+f_fire<-"MTBS_AK_2001_2009_IDR_ID.rst"
+r_fire<-raster(f_fire)
+r_fire<-mask(r_fire,mask_alaska)
+r_fire<- r_fire >0
+thresh_lab_tmp<-rev(thresh_lab)
+labels<-c(paste(thresh_lab_tmp,"seg",sep="_"),paste(thresh_lab_tmp,"pix",sep="_"))
+#Select the relevant change image?
+#change_OR<-raster(s_change,layer=3)
+list_xtab_eco<-vector("list",nlayers(s_change))
+list_xtab_fire<-vector("list",nlayers(s_change))
+
+#Make this a function
+for (i in 1:nlayers(s_change)){
+  change_OR<-raster(s_change, layer=i)
+  change_OR<- change_OR > 0
+  xtab_eco<-crosstab(ecoreg,change_OR)
+  #write.table(xtab_eco,file=paste("A_","xtab_tb_eco_",(labels[i]),out_prefix,".txt", sep=""),sep=",")
+  xtab_fire<-crosstab(r_fire,change_OR) 
+  #write.table(xtab_fire,file=paste("A_","xtab_tb_fire_",(labels[i]),out_prefix,".txt", sep=""),sep=",")
+  list_xtab_fire[[i]]<-cbind(xtab_fire[,2])
+  list_xtab_eco[[i]]<-cbind(xtab_eco[,2])  
+}
+tmp<-as.data.frame(do.call(cbind,list_xtab_eco))
+names(tmp)<-labels
+tmp2<-as.data.frame(do.call(cbind,list_xtab_fire))
+names(tmp2)<-labels
+total2<-freq(r_fire)[2,2]
+total1<-freq(ecoreg)[1:17,2]
+total<-c(total1,total2)
+table_4_paper<-rbind(tmp,tmp2[2,]) #category 18 is fire!!!
+table_4_paper$total_area<-total
+table_4_paper_percent<-(table_4_paper[,1:6]/total)*100
+table_4_paper_percent$total_area<-total
+write.table(table_4_paper,file=paste("A_","paper1_sta_table_4_paper_",out_prefix,".txt", sep=""),sep=",")
+write.table(table_4_paper_percent,file=paste("A_","paper1_sta_table_4_paper_",out_prefix,".txt", sep=""),
+            append=TRUE,sep=",")
+
+#######################################
+#########AREA OF CHANGE FOR DIFFERENT THRESHOLD AND PIXEL-SEG METHOD...
+#Now Create table 5 for paper...
 
 freq_r_stack<-function(r_stack){
   list_area_tab<-vector("list",nlayers(r_stack))
@@ -537,6 +561,7 @@ png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep="")
 #par(mfrow=c(1,2))
 
 LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
+nb_c_500_seg_OR
 plot(LSTA1_change,legend=FALSE,col=c("black","red"))
 legend("topright",legend=c("no change","change"),title="Change category",
        pt.cex=0.9,fill=c("black","red"),bty="n")
@@ -559,24 +584,36 @@ dev.off()
 ###############################
 ##Figure 7: change 500 with fire polygons???
 
-col_mfrow<-1
-row_mfrow<-1
-png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep=""),
+col_mfrow<-2
+row_mfrow<-2
+png(filename=paste("Figure7_paper1_change_Alaska_fire_perimeters",out_prefix,".png",sep=""),
     width=col_mfrow*480,height=row_mfrow*480)
 #par(mfrow=c(1,2))
 
-LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
-plot(LSTA1_change,legend=FALSE,col=c("black","red"))
+#LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
+infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
+mtbs_pol <- readOGR(".",infile_fire)
+nb_c_500_seg_OR
+plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"))
 legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=0.9,fill=c("black","red"),bty="n")
+       pt.cex=2,cex=2,fill=c("black","red"),bty="n")
 
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=0.7)
+         cex=1)
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
+#CRS_interp<-proj4string(interp_area)
+#temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+#plot(mtbs_pol, add=TRUE,border="lightgoldenrodyellow")
+plot(mtbs_pol, add=TRUE,border="yellow")
+#par(usr=c(-216, -66, 24, 144))   # you should be able to 'automate' this calculation 
+par(usr=c(1000000,1500000,1500000,2000000))
+plot(mtbs_pol, border="red",add=TRUE) #this plot without fill...
+e <- drawExtent()
+w_map<-crop(nb_c_500_seg_OR,e)
 dev.off()
 
 ###############################
@@ -601,7 +638,7 @@ SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position,
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 
 ##Figure 8b
-NDVIA0_c_seg<-raster("A_avg_seg_change_Alaska__NDVI_A0_c_500_01222013b_multicomp_1.rst")
+NDVIA0_c_seg<-raster("A_avg_seg_change_Alaska__NDVI_A0_c_500_01222013_multicomp_1.rst")
 plot(NDVIA0_c_seg,legend=FALSE,col=c("black","red"))
 legend("topright",legend=c("no change","change"),title="Change category",
        pt.cex=0.9,fill=c("black","red"),bty="n")
@@ -615,3 +652,14 @@ SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position,
 dev.off()
 
 #### End of script #####
+
+#
+im_window = raster("/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Figures_Dissertation_paper1/Figure1_Map_of_Study_area.png") 
+im_window=as.matrix(w_map)
+add.image(xpos=1000000, ypos=1500000,z=im_window, col=c("black","red"),
+  image.width = 0.15) #points the left-bottom corner and the reative size of image 
+par(new=TRUE, plt=c(0,1,0,1), mar=c(0,0,0,0), usr=c(0,1,0,1))
+add.image(xpos=0,ypos=0,z=im_window, col=c("black","red"),
+          image.width = 0.15)
+#use par new with usr
+#plot fire poly on the image inset
