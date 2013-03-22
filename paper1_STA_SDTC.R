@@ -1,9 +1,9 @@
 ##################    USING RASTER PACKAGE FOR ANALYSIS    #######################################
 ###########################  multi comparison tests  #############################################
-#This script is a first attempt at using R for multi-comparison tests and to implement
-#the detection method from paper1 dissertation.
-#AUTHOR: Benoit Parmentier                                                                       
-#DATE: 02/06/2013                                                                                 
+#This script is a first attempt at using R for multi-comparison tests...                       #
+#AUTHOR: Benoit Parmentier                                                                       #
+#DATE: 01/19/2013                                                                                 #
+#PROJECT: NCEAS INPLAN: Environment and Organisms --TASK#364--                                   #
 ##################################################################################################
 
 ###Loading r library and packages                                                      # loading the raster package
@@ -17,32 +17,13 @@ library(raster)
 library(multcomp)
 library(rasterVis)
 library(gdata)
-library(fields)
 
-#### Function used in the script ####
 load_obj <- function(f)
 {
   env <- new.env()
   nm <- load(f, env)[1]
   env[[nm]]
 }
-
-freq_r_stack<-function(r_stack){
-  list_area_tab<-vector("list",nlayers(r_stack))
-  for (j in 1:nlayers(r_stack)){
-    tmp<-freq(subset(r_stack,j))
-    tmp2<-na.omit(tmp)
-    if (j!=1){
-      list_area_tab[[j]]<-as.data.frame(tmp2[,2])
-    }
-    if (j==1){
-      list_area_tab[[j]]<-as.data.frame(tmp2)
-    }
-  }
-  table_freq<-do.call(cbindX,list_area_tab)
-  return(table_freq)
-}
-
 ###Parameters and arguments
 
 infile1<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.shp"
@@ -65,14 +46,12 @@ t<-0.05/9
 thresholds_input<- c(c(0.05,0.01),t)
 #out_prefix<-"_01192013_multicomp_1"
 #out_prefix<-"_01222013b_multicomp_1"
-out_prefix<-"_01222013_multicomp_1"
+out_prefix<-"_03022013_multicomp_1"
 
 prop<-0.5
 correction=0 #if correction is 1 then doa 
 
-#####################################################
-####### MAIN BODY - START OF THE SCRIPT #######################
-
+#######START OF THE SCRIPT #############
 ref<-readGDAL(infile3)
 l1<-list.files(pattern="_MK_P.rst") #RENAME ???
 l3<-list.files(pattern=".rst") # all rst files
@@ -99,6 +78,8 @@ setValues(id_rast,1:ncell(s1_1)) #Assinging unique ID for every pixels
 
 #projection(s1) <- "+proj=utm +zone=15 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
+#START CODE HERE
+
 # PART 1 use 5% and 2.5% threshold for p
 if (correction==1){
   alpha_adj<- thresholds_input
@@ -113,10 +94,6 @@ if (correction==0){
 }
 
 thresh_lab<-as.character(round(thresholds*10000))
-
-
-###################### STEP 2: DETECT CHANGE AT THE SEGMENT LEVEL ##########
-###############SDTC-Segment based Detection of Change ####
 
 list_table_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
 list_xtab_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
@@ -220,9 +197,7 @@ for (i in 1:length(thresholds)){
   #return(sta_change_obj)
 }
 
-###################### STEP 3: DETECT CHANGE AT THE PIXEL LEVEL ##########
-###############   SDTC-Segment based Detection of Change   ###########
-
+###### SAME ANALYSIS AT THE PIXEL LEVEL...
 #Compare to threshold from pixels only...
 list_table_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
 list_xtab_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
@@ -280,8 +255,7 @@ for (i in 1:length(thresholds)){
 
 #mclapply(1:length(thresholds), runChangeFunction,mc.preschedule=FALSE,mc.cores = 9)
 
-###################### STEP 5:  WRITE OUT RESULTS TO SIMPLIFY ANALYSES ##########
-########## BEFORE EXAMINING RESULTS WRITE OUT CHANGES 
+########## BEFORE EXAMINING RESULTS WRITE OUT CHANGES TO FILE
 ### Create table of %change for every level
 #list_data_change<-vector("list", length(thresholds)) #This will contian the summary table per seg for every threshold
 file_pat<-glob2rx(paste("*A_Change_image9_param_avg_seg_Alaska*",out_prefix,"*.rst",sep="")) #Search for files in relation to fusion                  
@@ -303,8 +277,7 @@ raster_name<-paste("A_",data_name,out_prefix,".tif", sep="")
 writeRaster(s_change, filename=raster_name,NAflag=-999,bylayer=False,
             bandorder ="BSQ",overwrite=TRUE)  #Writing the data in a raster file format...
 
-###################### STEP 5: CREATE TABLES FOR THE PAPER ##########
-##########  COMPARE RESULTS TO MTBS FIRE DATA SET AND ECOREGION########
+####COMPARE RESULTS TO MTBS FIRE DATA SET AND ECOREGION########
 ## Create table 4 for paper
 
 nb<-maxValue(ecoreg) #number of regions in the map
@@ -350,7 +323,23 @@ write.table(table_4_paper_percent,file=paste("A_","paper1_sta_table_4_paper_",ou
 #########AREA OF CHANGE FOR DIFFERENT THRESHOLD AND PIXEL-SEG METHOD...
 #Now Create table 5 for paper...
 
-table_nc_pix<-freq_r_stack(s_change_pix) #see function defined earlier
+freq_r_stack<-function(r_stack){
+  list_area_tab<-vector("list",nlayers(r_stack))
+  for (j in 1:nlayers(r_stack)){
+    tmp<-freq(subset(r_stack,j))
+    tmp2<-na.omit(tmp)
+    if (j!=1){
+      list_area_tab[[j]]<-as.data.frame(tmp2[,2])
+    }
+    if (j==1){
+    list_area_tab[[j]]<-as.data.frame(tmp2)
+    }
+  }
+  table_freq<-do.call(cbindX,list_area_tab)
+  return(table_freq)
+}
+
+table_nc_pix<-freq_r_stack(s_change_pix)
 table_nc_seg<-freq_r_stack(s_change_seg)
 names(table_nc_pix)<-c("value",paste("t_",rev(thresh_lab),sep=""))  #rev to reverse the elements of a vector
 names(table_nc_seg)<-c("value",paste("t_",rev(thresh_lab),sep=""))  #rev to reverse the elements of a vector
@@ -386,17 +375,8 @@ s_change<-stack(lfc)
 s_change<-mask(s_change,mask_alaska)
 plot(s_change)
 
-#Now get the crosstab table
-#names(lf_change_list_param)<-c("ALB_A0_c","ALB_A1_c","ALB_A2_c","LST_A0_c","LST_A1_c","LST_A2_c","NDVI_A0_c","NDVI_A1_c","NDVI_A2_c")
-plot(seg_id)
+### Creating figures #### FIRST READ IN ECOREGION INFORMATION
 
-###################### STEP 6: CREATE FIGURES FOR THE PAPER ##########
-#####################
-
-###############################
-##Figure 1: wwf ecoregion map for Alaksa
-
-### Creating figures
 cat_names<-c("Alaska Peninsula montane Taiga",
              "Alaska St Elias Range Tundra",
              "Aleutian Islands tundra",
@@ -413,20 +393,29 @@ cat_names<-c("Alaska Peninsula montane Taiga",
              "Ogilvie Mackenzie alpine tundra",
              "Pacific Coastal Mountain icefiles and tundra")
 
-#col_palette<-ecoreg@legend@colortable
-nb<-length(unique(ecoreg))
-ecoreg@legend@colortable<-rainbow(nb)
-plot(ecoreg,col=rainbow(nb), colNA="transparent")
-plot(seg_id)
-#plot(RGB)...
-pal<-rainbow(nb)
-pal[11]<-"green"
-pal[12]<-"darkgreen"
-plot(ecoreg,col=c(colorRampPalette(pal)))
+infile_ecoreg<-"wwf_terr_ecos_Alaska.shp"
+ecoreg_spdf<-readOGR(dsn=".",sub(".shp","",infile_ecoreg))
+proj4string(ecoreg_spdf)
+proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+
+ecoreg_spdf_ALB83<-spTransform(ecoreg_spdf,CRS(proj_ALB83))
+outfile4<-paste("wwf_terr_ecos_Alaska_ALB83","_",out_prefix,".shp",sep="")
+writeOGR(ecoreg_spdf_ALB83,dsn=path_in,layer= sub(".shp","",outfile4), driver="ESRI Shapefile",overwrite_layer=TRUE)
+
+nb_col<-length(unique(cat_names))
+col_eco<-rainbow(nb)
+cat_names<-unique(ecoreg_spdf_ALB83$ECO_NAME)
+
+###############################
+##Figure 1: wwf ecoregion
+
+infile<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.shp"
+quartz()
+plot(ecoreg_spdf_ALB83)
 
 col_mfrow<-1
 row_mfrow<-1
-png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep=""),
+png(filename=paste("Figure1_paper1_wwf_ecoreg_Alaska",out_prefix,".png",sep=""),
     width=col_mfrow*480,height=row_mfrow*480)
 #par(mfrow=c(1,2))
 
@@ -434,6 +423,8 @@ LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_
 plot(LSTA1_change,legend=FALSE,col=c("black","red"))
 legend("topright",legend=c("no change","change"),title="Change category",
        pt.cex=0.9,fill=c("black","red"),bty="n")
+scale_position<-c(450000, 600000)
+arrow_position<-c(900000, 600000)
 
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
@@ -444,15 +435,7 @@ SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position,
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 dev.off()
 
-################################
-##Figure 2: workflow...
-
-
-################################
-##Figure 3: Map of trends: color composite...
-
-
-###############################
+###############
 ##Figure 4: nubmer of change and change OR for 500 seg
 
 #load images to plot
@@ -497,7 +480,7 @@ SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position,
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 dev.off()
 
-#####################################
+###############################
 ##Figure 5: change 500 for LST
 
 col_mfrow<-1
@@ -536,6 +519,7 @@ png(filename=paste("Figure7_paper1_change_Alaska_fire_perimeters",out_prefix,".p
     width=col_mfrow*480,height=row_mfrow*480)
 #par(mfrow=c(1,2))
 
+#LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
 infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
 mtbs_pol <- readOGR(".",infile_fire)
 nb_c_500_seg_OR
@@ -558,73 +542,53 @@ plot(mtbs_pol, add=TRUE,border="yellow")
 par(usr=c(1000000,1500000,1500000,2000000))
 plot(mtbs_pol, border="red",add=TRUE) #this plot without fill...
 e <- drawExtent()
-xmin<-64134.7 
-xmax<-201189.1 
-ymin<-2077923 
-ymax<-2189280 
-extent_position<-c(xmin,xmax,ymin,ymax)
-#load images to plot
-nb_c_500_seg<-raster("A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst")
-nb_c_500_seg_OR<- nb_c_500_seg >0
-
 w_map<-crop(nb_c_500_seg_OR,e)
-
-im_window=as.matrix(w_map)
-add.image(xpos=1000000, ypos=1500000,z=im_window, col=c("black","red"),
-          image.width = 0.15) #points the left-bottom corner and the reative size of image 
-#par(new=TRUE, plt=c(0,1,0,1), mar=c(0,0,0,0), usr=c(0,1,0,1))
-plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"))
-xw1<-xmin+1000000
-xw2<-xmax+1000000
-yw1<-xmin+1500000
-yw2<-xmax+1500000
-w_map2<-w_map
-extent(w_map2)<-c(xw1,xw2,yw1,yw2)
-#par(new=TRUE,usr=extent_position)
-#par(new=TRUE)
-rd <- disaggregate(w_map2, fact=c(10, 10))
-#use elide from map tools
-plot(rd,add=TRUE)
-#add.image(xpos=0,ypos=0,z=im_window, col=c("black","red"),
-#          image.width = 0.15)
-#use par new with usr
-#plot fire poly on the image inset
 dev.off()
 
 ###############################
 ##Figure 8: combined-- change 500 for NDVI A0 pix and seg
-col_mfrow<-1
-row_mfrow<-2
+col_mfrow<-2
+row_mfrow<-1
 png(filename=paste("Figure_8_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
     width=col_mfrow*960,height=row_mfrow*960)
-par(mfrow=c(2,1))
+par(mfrow=c(row_mfrow,col_mfrow))
 
 ##Figure 8a
 NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
-plot(NDVIA0_c_pix,legend=FALSE,col=c("black","red"))
+plot(NDVIA0_c_pix,legend=FALSE,col=c("black","red"),axes="FALSE")
 legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=0.9,fill=c("black","red"),bty="n")
+       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=0.7)
+         cex=1.8)
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 
 ##Figure 8b
 NDVIA0_c_seg<-raster("A_avg_seg_change_Alaska__NDVI_A0_c_500_01222013_multicomp_1.rst")
-plot(NDVIA0_c_seg,legend=FALSE,col=c("black","red"))
+plot(NDVIA0_c_seg,legend=FALSE,col=c("black","red"),axes="FALSE")
 legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=0.9,fill=c("black","red"),bty="n")
+       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=0.7)
+         cex=1.8)
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 125000, fill=c("transparent","black"),plot.grid=FALSE)
 dev.off()
 
-######################################################
-################## End of script ####################
+#### End of script #####
+
+#
+#im_window = raster("/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Figures_Dissertation_paper1/Figure1_Map_of_Study_area.png") 
+#im_window=as.matrix(w_map)
+#add.image(xpos=1000000, ypos=1500000,z=im_window, col=c("black","red"),
+#  image.width = 0.15) #points the left-bottom corner and the reative size of image 
+#par(new=TRUE, plt=c(0,1,0,1), mar=c(0,0,0,0), usr=c(0,1,0,1))
+#add.image(xpos=0,ypos=0,z=im_window, col=c("black","red"),
+#          image.width = 0.15)
+#use par new with usr
+#plot fire poly on the image inset
