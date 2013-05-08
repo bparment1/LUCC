@@ -1,5 +1,6 @@
 ###########  PLOTTING FIGURES FOR THE PAPER ##############
 ### FIRST READ IN ECOREGION INFORMATION
+out_prefix <- "_05082013_multicomp_1"
 
 infile_ecoreg<-"wwf_terr_ecos_Alaska.shp"
 ecoreg_spdf<-readOGR(dsn=".",sub(".shp","",infile_ecoreg))
@@ -212,16 +213,26 @@ dev.off()
 #not created in R...
 
 ###############################
-##Figure 7: change 500 with fire polygons???
+##Figure 7
+
 infile_w_Anaktuvut<-"window_Anaktuvut_river_fire_12232011_rec.shp"
 w_Anaktuvut<-readOGR(dsn=".",sub(".shp","",infile_w_Anaktuvut))
 w_Anaktuvut_fire <-readOGR(dsn=".",sub(".shp","","window_MTBS_Anaktuvut.shp"))
+#res_pix<-960
+#col_mfrow<-1
+#row_mfrow<-1
+#png(filename=paste("Figure7_paper1_change_Alaska_fire_perimeters",out_prefix,".png",sep=""),
+#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+#par(mfrow=c(row_mfrow,col_mfrow))
+
 res_pix<-960
 col_mfrow<-1
 row_mfrow<-1
-png(filename=paste("Figure7_paper1_change_Alaska_fire_perimeters",out_prefix,".png",sep=""),
+png(filename=paste("Figure7a_paper1_change_Alaska_fire_perimeters",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(row_mfrow,col_mfrow))
+
+##Figure 7a: change 500 with fire polygons???
 
 #LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
 infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
@@ -249,6 +260,109 @@ opar <- par(fig=c(0.65, 0.9, 0.5, 0.75), new=TRUE)
 plot(w1_rast,axes=FALSE,legend=FALSE,col=c("black","red"))
 opar <- par(fig=c(0.65, 0.9, 0.5, 0.75), new=TRUE)
 plot(w_Anaktuvut_fire,border="yellowgreen",add=TRUE)
+dev.off()
+
+##Figure 7b: change 500 with insect polygons???
+#Insect_2001_2009_mask_alaska.shp
+infile_insect<-sub(".shp","","insect_bool2.shp")             #Removing the extension from file.
+insect_pol <- readOGR(".",infile_insect)
+
+png(filename=paste("Figure7b_paper1_change_Alaska_insect_perimeters",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+par(mfrow=c(row_mfrow,col_mfrow))
+
+plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"),axes="FALSE")
+
+#legend("topright",legend=c("no change","change"),title="Change category",
+#       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
+#lty=c( 1,-1,-1), pch=c(-1,15, 1)
+legend("topright",legend=c("Infestation","no change","change"),
+       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+       cex=2.1, lwd(2.5,-1,-1),
+       lty=c( 1,-1,-1), pch=c(-1,15, 15),col=c("yellowgreen","black","red"),bty="n")
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=1.8)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+plot(insect_pol, add=TRUE,border="yellowgreen")
+
+dev.off()
+
+###############################
+##### Figure 7: comibined --change 500 with fire polygons???
+
+res_pix<-960
+col_mfrow<-2
+row_mfrow<-1
+
+##Figure 7a: change 500 with insect polygons???
+#Insect_2001_2009_mask_alaska.shp
+infile_insect<-sub(".shp","","insect_bool2.shp")             #Removing the extension from file.
+insect_pol <- readOGR(".",infile_insect)
+
+png(filename=paste("Figure7_paper1_change_Alaska_insect_fire_perimeters",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+par(mfrow=c(row_mfrow,col_mfrow))
+
+plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"),axes="FALSE")
+
+#legend("topright",legend=c("no change","change"),title="Change category",
+#       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
+#lty=c( 1,-1,-1), pch=c(-1,15, 1)
+legend("topright",legend=c("Infestation","no change","change"),
+       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+       cex=2.1, lwd(2.5,-1,-1),
+       lty=c( 1,-1,-1), pch=c(-1,15, 15),col=c("yellowgreen","black","red"),bty="n")
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=1.8)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+plot(insect_pol, add=TRUE,border="yellowgreen")
+
+infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
+mtbs_pol <- readOGR(".",infile_fire)
+nb_c_500_seg_OR
+plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"),axes="FALSE")
+w1_rast<-crop(nb_c_500_seg_OR,w_Anaktuvut)
+#legend("topright",legend=c("no change","change"),title="Change category",
+#       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
+#lty=c( 1,-1,-1), pch=c(-1,15, 1)
+legend("topright",legend=c("MTBS fire","no change","change"),
+       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+       cex=2.1, lwd(2.5,-1,-1),
+       lty=c( 1,-1,-1), pch=c(-1,15, 15),col=c("yellowgreen","black","red"),bty="n")
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=1.8)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+plot(mtbs_pol, add=TRUE,border="yellowgreen")
+plot(w_Anaktuvut,add=TRUE,border="white")
+
+#To make the horizontal dimensions of the graph smaller or to move the graph left or right, 
+#adjust the starting and ending x coordinates, given by the first and second positions of 
+#the fig value vector. To make the vertical dimensions of the graph smaller or to move 
+#the graph up or down, adjust 
+#the staring and ending y coordinates given in the third and fourth positions as below.
+# place graph one in the bottom left
+#par(fig=c(0, .25, 0, .25), mar=c(2,.5,1,.5), mgp=c(0, 1, 0))
+
+#opar <- par(fig=c(0.8, 0.9, 0.6, 0.7), new=TRUE)
+opar <- par(fig=c(0.87, 0.5, 0.65, 0.5), new=TRUE)
+plot(w1_rast,axes=FALSE,legend=FALSE,col=c("black","red"),box=FALSE)
+#opar <- par(fig=c(0.65, 0.9, 0.5, 0.75), new=TRUE)
+#opar <- par(fig=c(0.8, 0.9, 0.6, 0.7), new=TRUE)
+opar <- par(fig=c(0.87, 0.5, 0.65, 0.5), new=TRUE)
+
+plot(w_Anaktuvut_fire,border="yellowgreen",add=TRUE,box=FALSE)
 dev.off()
 
 ###############################
