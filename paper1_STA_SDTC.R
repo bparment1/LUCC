@@ -2,7 +2,7 @@
 ###########################  multi comparison tests  #############################################
 #This script is a first attempt at using R for multi-comparison tests...                       #
 #AUTHOR: Benoit Parmentier                                                                       #
-#DATE: 01/19/2013                                                                                 #
+#DATE: 05/08/2013                                                                                 #
 #PROJECT: NCEAS INPLAN: Environment and Organisms --TASK#364--                                   #
 ##################################################################################################
 
@@ -18,12 +18,46 @@ library(multcomp)
 library(rasterVis)
 library(gdata)
 
+#Functions used in the script
+
 load_obj <- function(f)
 {
   env <- new.env()
   nm <- load(f, env)[1]
   env[[nm]]
 }
+
+merge_multiple_df<-function(df_list,by_name){
+  for (i in 1:(length(df_list)-1)){
+    if (i==1){
+      df1=df_list[[i]]
+    }
+    if (i!=1){
+      df1=df_m
+    }
+    df2<-df_list[[i+1]]
+    df_m<-merge(df1,df2,by=by_name,all=T)
+  }
+  return(df_m)
+}
+
+freq_r_stack<-function(r_stack){
+  list_area_tab<-vector("list",nlayers(r_stack))
+  for (j in 1:nlayers(r_stack)){
+    tmp<-freq(subset(r_stack,j))
+    tmp2<-na.omit(tmp)
+    if (j!=1){
+      list_area_tab[[j]]<-as.data.frame(tmp2[,2])
+    }
+    if (j==1){
+      list_area_tab[[j]]<-as.data.frame(tmp2)
+    }
+  }
+  table_freq<-do.call(cbindX,list_area_tab)
+  return(table_freq)
+}
+
+
 ###Parameters and arguments
 
 infile1<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.shp"
@@ -32,8 +66,10 @@ infile2b<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.vct"                    
 infile3<-"Change_image9_parameters_CMK.rst"
 infile4<-"seg12_NDVI_LST_ALB_A0_A1_A2_TS_s_0_450__0.rst" #Seg ID
 infile5<-"mask_land2.rst"
-infile6<-"Alaska_globcover2009_ALB83_mask.rst"
-infile6b<-"Alaska_globcover2009_ALB83.rst"
+infile6 <-"Alaska_glc2000_ALB83.rst"
+#infile6b<-"Alaska_globcover2009_ALB83.rst"
+f_fire<-"MTBS_AK_2001_2009_IDR_ID.rst"
+
 #outfile
 #path<-"/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Paper1_sta_revision_12202011"
 #path_in<-"/home/parmentier/Data/Paper1_sta_revision_01192013"
@@ -49,7 +85,7 @@ thresholds_input<- c(c(0.05,0.01),t)
 out_prefix<-"_03022013_multicomp_1"
 
 prop<-0.5
-correction=0 #if correction is 1 then doa 
+correction=0 #if correction is 1 then carry out Bonferroni correction...
 
 #######START OF THE SCRIPT #############
 ref<-readGDAL(infile3)
@@ -280,18 +316,24 @@ writeRaster(s_change, filename=raster_name,NAflag=-999,bylayer=False,
 ####COMPARE RESULTS TO MTBS FIRE DATA SET AND ECOREGION########
 ## Create table 4 for paper
 
+s_change<-brick("A_change_nb_c_rast_all_pix_seg_Alaska___01222013_multicomp_1.tif")
+
 nb<-maxValue(ecoreg) #number of regions in the map
 plot(ecoreg,col=rainbow(nb))
-f_fire<-"MTBS_AK_2001_2009_IDR_ID.rst"
 r_fire<-raster(f_fire)
 r_fire<-mask(r_fire,mask_alaska)
 r_fire<- r_fire >0
 thresh_lab_tmp<-rev(thresh_lab)
 labels<-c(paste(thresh_lab_tmp,"seg",sep="_"),paste(thresh_lab_tmp,"pix",sep="_"))
+lc_rast <- raster(infile6) #land cover
+temp_name <- sub("^([^.]*).*", "\\1", infile6) 
+lc_rast_m <- mask(x=lc_rast,mask=mask_alaska,filename=paste(tmp_name,"_mask.rst",sep="")) #land cover
+
 #Select the relevant change image?
 #change_OR<-raster(s_change,layer=3)
 list_xtab_eco<-vector("list",nlayers(s_change))
 list_xtab_fire<-vector("list",nlayers(s_change))
+list_xtab_lc<-vector("list",nlayers(s_change))
 
 #Make this a function
 for (i in 1:nlayers(s_change)){
@@ -300,18 +342,30 @@ for (i in 1:nlayers(s_change)){
   xtab_eco<-crosstab(ecoreg,change_OR)
   #write.table(xtab_eco,file=paste("A_","xtab_tb_eco_",(labels[i]),out_prefix,".txt", sep=""),sep=",")
   xtab_fire<-crosstab(r_fire,change_OR) 
+  xtab_lc <-crosstab(lc_rast_m,change_OR)
+  
   #write.table(xtab_fire,file=paste("A_","xtab_tb_fire_",(labels[i]),out_prefix,".txt", sep=""),sep=",")
   list_xtab_fire[[i]]<-cbind(xtab_fire[,2])
   list_xtab_eco[[i]]<-cbind(xtab_eco[,2])  
+  list_xtab_lc[[i]]<-cbind(xtab_lc[,2])  
 }
-tmp<-as.data.frame(do.call(cbind,list_xtab_eco))
+
+tmp <- as.data.frame(do.call(cbind,list_xtab_eco))
 names(tmp)<-labels
 tmp2<-as.data.frame(do.call(cbind,list_xtab_fire))
 names(tmp2)<-labels
-total2<-freq(r_fire)[2,2]
-total1<-freq(ecoreg)[1:17,2]
+tmp3<-as.data.frame(do.call(cbindX,list_xtab_lc))
+#names(tmp3)<-labels
+
+total2 <-freq(r_fire)[2,2]
+total1 <-freq(ecoreg)[1:17,2]
+
+#total<-c(total1,total2)
 total<-c(total1,total2)
+
 table_4_paper<-rbind(tmp,tmp2[2,]) #category 18 is fire!!!
+table_4_paper<-rbind(tmp,tmp2[2,]) #category 18 is fire!!!
+
 table_4_paper$total_area<-total
 table_4_paper_percent<-(table_4_paper[,1:6]/total)*100
 table_4_paper_percent$total_area<-total
@@ -319,25 +373,140 @@ write.table(table_4_paper,file=paste("A_","paper1_sta_table_4_paper_",out_prefix
 write.table(table_4_paper_percent,file=paste("A_","paper1_sta_table_4_paper_",out_prefix,".txt", sep=""),
             append=TRUE,sep=",")
 
+#########################
+## LAND COVER DATA
+
+total_lc <-as.data.frame(freq(lc_rast))
+list_lc_df <- vector("list",length(list_xtab_lc))
+
+for (i in 1:length(list_xtab_lc)){
+  tmp_df <-as.data.frame(list_xtab_lc[[i]])
+  names(tmp_df)[1]<-labels[i]
+  tmp_df$GLC_ID<-rownames(tmp_df)
+  names(tmp_df)
+  list_lc_df[[i]]<-tmp_df
+}
+
+### MERGE MULTIPLE df based on id
+table_5_paper<-merge_multiple_df(list_lc_df,by_name="GLC_ID")
+table_5_temp<- merge(table_5_paper,total_lc,by.x="GLC_ID",by.y="value")
+table_5_paper_percent<-(table_5_temp[,2:7]/table_5_temp[,8])*100
+#table_5_paper$total_area<- total_lc[c("count")]
+table_5_paper_percent$GLC_ID <- table_5_temp$GLC_ID
+
+lc_cat <- vector("list",25)
+lc_cat[[1]]<- c(0, "No Data")
+lc_cat[[2]]<- c(3,"Temperate or Sub-polar Broadleaved Deciduous Forest - Closed Canopy")
+lc_cat[[3]]<- c(4,"Temperate or Sub-polar Needleleaved Evergreen Forest - Closed Canopy")
+lc_cat[[4]]<- c(5,"Temperate or Sub-polar Needleleaved Evergreen Forest - Open Canopy")
+lc_cat[[5]]<- c(6,"Temperate or Sub-polar Needleleaved Mixed Forest - Closed Canopy")
+lc_cat[[6]]<- c(7,"Temperate or Sub-polar Mixed Broadleaved or Needleleaved Forest - Closed Canopy")
+lc_cat[[7]]<- c(8,"Temperate or Sub-polar Mixed Broaddleleaved or Needleleaved Forest - Open Canopy")
+lc_cat[[8]]<- c(10,"Temperate or Subpolar Broadleaved Deciduous Shrubland - Open Canopy")
+lc_cat[[9]]<- c(11,"Temperate or Subpolar Needleleaved Evergreen Shrubland - Open Canopy")
+lc_cat[[10]]<- c(13,"Temperate or Subpolar Grassland")
+lc_cat[[11]]<- c(14,"Temperate or Subpolar Grassland with a Sparse Tree Layer")
+lc_cat[[12]]<- c(15,"Temperate or Subpolar Grassland with a Sparse Shrub Layer")
+lc_cat[[13]]<- c(16,"Polar Grassland with a Sparse Shrub Layer")
+lc_cat[[14]]<- c(17,"Polar Grassland with a Dwarf-Sparse Shrub Layer")
+lc_cat[[15]]<- c(18,"Cropland")
+lc_cat[[16]]<- c(19,"Cropland and Shrubland/woodland")
+lc_cat[[17]]<- c(20,"Subpolar Needleleaved Evergreen Forest Open Canopy -  lichen understory")
+lc_cat[[18]]<- c(21,"Unconsolidated Material Sparse Vegetation (old burnt or other disturbance")
+lc_cat[[19]]<- c(22,"Urban and Built-up")
+lc_cat[[20]]<- c(23,"Consolidated Rock Sparse Vegetation")
+lc_cat[[21]]<- c(24,"Water bodies")
+lc_cat[[22]]<- c(25,"Burnt area (resent burnt area)")
+lc_cat[[23]]<- c(26,"Snow and Ice")
+lc_cat[[24]]<- c(27,"Wetlands")
+lc_cat[[25]]<- c(28,"Herbaceous Wetlands")
+
+lc_cat_df<-as.data.frame(do.call(rbind,lc_cat))
+names(lc_cat_df)<-c("GLC_ID","lc_cat_name")
+
+#merge(table_5_paper_percent,lc_cat_df,by="GLC_ID"))
+table_5_paper_all<- merge(table_5_paper_percent,lc_cat_df,by="GLC_ID")
+
+
+########### INSECT INFESTATION DATASET ############
+
+insect_rast<-raster("Insect_2001_2009_mask.rst")
+extent(insect_rast)<-extent(lc_rast)
+insect_rast_m<-mask(insect_rast,change_OR,NAflag=-9999,filename="Insect_2001_2009_mask_alaska.rst",overwrite=TRUE)
+
+#infile_insect_vct <-"akfordmg01.shp"
+infile_insect_vct <- "akfordmg1989_2010.shp"
+infile_insect_path <- "./"
+#insect_spdf<-readOGR(dsn="/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/insect_infestation_2013/",sub(".shp","",infile_insect_vct))
+insect_spdf<-readOGR(dsn="./insect_infestation_2013/",sub(".shp","",infile_insect_vct))
+
+proj4string(insect_spdf) # ok same projection but with different string definition
+proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+
+#r2 <- rasterize(insect_spdf, id_rast, field="DAMAGE2001", update=TRUE, updateValue="NA")
+
+names(insect_spdf)
+
+insect_spdf_01<-subset(insect_spdf,!is.na(insect_spdf$DAMAGE2001))
+insect_spdf_02<-subset(insect_spdf,!is.na(insect_spdf$DAMAGE2002))
+insect_spdf_03<-subset(insect_spdf,!is.na(insect_spdf$DAMAGE2003))
+insect_spdf_04<-subset(insect_spdf,!is.na(insect_spdf$DAMAGE2004))
+insect_spdf_05<-subset(insect_spdf,!is.na(insect_spdf$DAMAGE2005))
+insect_spdf_06<-subset(insect_spdf,!is.na(insect_spdf$Damage2006))
+insect_spdf_07<-subset(insect_spdf,!is.na(insect_spdf$Damage2007))
+insect_spdf_08<-subset(insect_spdf,!is.na(insect_spdf$Damage2008))
+insect_spdf_09<-subset(insect_spdf,!is.na(insect_spdf$Damage2009))
+
+insect_spdf_01$y2001 <- rep(1,length(insect_spdf_01))
+insect_spdf_02$y2002 <- rep(1,length(insect_spdf_02))
+insect_spdf_03$y2003 <- rep(1,length(insect_spdf_03))
+insect_spdf_04$y2004 <- rep(1,length(insect_spdf_04))
+insect_spdf_05$y2005 <- rep(1,length(insect_spdf_05))
+insect_spdf_06$y2006 <- rep(1,length(insect_spdf_06))
+insect_spdf_07$y2007 <- rep(1,length(insect_spdf_07))
+insect_spdf_08$y2008 <- rep(1,length(insect_spdf_08))
+insect_spdf_09$y2009 <- rep(1,length(insect_spdf_09))
+
+r2001 <- rasterize(insect_spdf_01, id_rast, field="y2001")
+r2002 <- rasterize(insect_spdf_02, id_rast, field="y2002")
+r2003 <- rasterize(insect_spdf_03, id_rast, field="y2003")
+r2004 <- rasterize(insect_spdf_04, id_rast, field="y2004")
+r2005 <- rasterize(insect_spdf_05, id_rast, field="y2005")
+r2006 <- rasterize(insect_spdf_06, id_rast, field="y2006")
+r2007 <- rasterize(insect_spdf_07, id_rast, field="y2007")
+r2008 <- rasterize(insect_spdf_08, id_rast, field="y2008")
+r2009 <- rasterize(insect_spdf_09, id_rast, field="y2009")
+
+r2001[is.na(r2001)] <-0
+r2002[is.na(r2002)] <-0
+r2003[is.na(r2003)] <-0
+r2004[is.na(r2004)] <-0
+r2005[is.na(r2005)] <-0
+r2006[is.na(r2006)] <-0
+r2007[is.na(r2007)] <-0
+r2008[is.na(r2008)] <-0
+r2009[is.na(r2009)] <-0
+
+instect_s <-stack(r2001,r2002,r2003,r2004,r2005,r2006,r2007,r2008,r2009)
+insect_rast<- r2001+r2002+r2003+r2004+r2005+r2006+r2007+r2008+r2009
+
+
+nb_c_500_seg<-raster("A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst")
+change_OR<- nb_c_500_seg >0
+#load images to plot
+insect_rast_m<-mask(insect_rast,change_OR,NAflag=-9999,filename="insect_rast_mask_alaska.rst",overwrite=TRUE)
+
+xtab_insect_s <-crosstab(insect_rast_m,change_OR)
+insect_bool <- insect_rast_m > 0
+xtab_insect_bool <-crosstab(insect_bool,change_OR)
+raster_name<-"insect_bool.rst"
+writeRaster(insect_bool, filename=raster_name,NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
+
 #######################################
 #########AREA OF CHANGE FOR DIFFERENT THRESHOLD AND PIXEL-SEG METHOD...
 #Now Create table 5 for paper...
 
-freq_r_stack<-function(r_stack){
-  list_area_tab<-vector("list",nlayers(r_stack))
-  for (j in 1:nlayers(r_stack)){
-    tmp<-freq(subset(r_stack,j))
-    tmp2<-na.omit(tmp)
-    if (j!=1){
-      list_area_tab[[j]]<-as.data.frame(tmp2[,2])
-    }
-    if (j==1){
-    list_area_tab[[j]]<-as.data.frame(tmp2)
-    }
-  }
-  table_freq<-do.call(cbindX,list_area_tab)
-  return(table_freq)
-}
+#using freq_r_stack function
 
 table_nc_pix<-freq_r_stack(s_change_pix)
 table_nc_seg<-freq_r_stack(s_change_seg)
@@ -377,304 +546,4 @@ plot(s_change)
 
 ########################## CREATING FIGURES FOR THE PAPER ###############################
 
-### Creating figures #### FIRST READ IN ECOREGION INFORMATION
-
-infile_ecoreg<-"wwf_terr_ecos_Alaska.shp"
-ecoreg_spdf<-readOGR(dsn=".",sub(".shp","",infile_ecoreg))
-proj4string(ecoreg_spdf)
-proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
-
-ecoreg_spdf_ALB83<-spTransform(ecoreg_spdf,CRS(proj_ALB83))
-outfile4<-paste("wwf_terr_ecos_Alaska_ALB83","_",out_prefix,".shp",sep="")
-writeOGR(ecoreg_spdf_ALB83,dsn=path_in,layer= sub(".shp","",outfile4), driver="ESRI Shapefile",overwrite_layer=TRUE)
-
-nb_col<-length(unique(cat_names))
-col_eco<-rainbow(nb_col)
-cat_names<-unique(ecoreg_spdf_ALB83$ECO_NAME)
-# Wrong order in terms of the categories of ecoreg so assign them
-cat_names<-c("Alaska Peninsula montane taiga",
-             "Alaska St Elias Range tundra",
-             "Aleutian Islands tundra",
-             "Arctic coastal tundra",
-             "Arctic foothills tundra",
-             "Beringia lowland tundra",
-             "Beringia upland tundra",
-             "Brooks-British Range tundra",
-             "Cook Inlet taiga",
-             "Copper Plateau taiga",
-             "Interior Alaska-Yukon lowland taiga",
-             "Interior Yukon-Alaska alpine tundra",
-             "Northern Cordillera forests",
-             "Northern Pacific coastal forests",
-             "Ogilvie-Mackenzie alpine tundra",
-             "Pacific Coastal Mountain icefields and tundra",
-             "Rock and Ice")
-
-infile<-"wwf_terr_ecos_Alaska_ECOREGIONS_ECOSYS_ALB83.shp"
-ecoreg_spdf<-readOGR(dsn=".",sub(".shp","",infile))
-ecoreg_spdf$ECO_NAME<-cat_names
-#problem with extent, ecoreg_spdf is not the same extent as raster images!!
-ecoreg_rast<-rasterize(ecoreg_spdf,LSTA1_change,"DATA_VALUE")
-projection(ecoreg_rast)<-proj_ALB83
-writeRaster(ecoreg_rast,overwrite_layer=TRUE)
-data_name<-paste("ecoregion_map_",sep="")
-raster_name<-paste(data_name,out_prefix,".rst", sep="")
-writeRaster(ecoreg_rast, filename=raster_name,NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
-
-###############################
-##Figure 1: wwf ecoregion
-res_pix<-960
-col_mfrow<-1
-row_mfrow<-1
-png(filename=paste("Figure1_paper1_wwf_ecoreg_Alaska",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-#par(mfrow=c(1,2))
-
-plot(ecoreg_rast,col=col_eco,legend=FALSE,axes="FALSE")
-legend("topright",legend=cat_names,title="WWF ecoregions",
-       pt.cex=1.1,cex=1.1,fill=col_eco,bty="n")
-scale_position<-c(450000, 600000)
-arrow_position<-c(900000, 600000)
-
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-dev.off()
-
-###############
-##Figure 2: worflow...
-
-#Figure not created in R
-
-###############
-##Figure 3: amplitude image
-
-amplitude_rast<-brick("ndvi_2001_2009_filling6__STA_Amplitudes.rst")
-amp0<-raster("ndvi_2001_2009_filling6__STA_amplitude0_TS_slope.rst")
-amp1<-raster("ndvi_2001_2009_filling6__STA_amplitude1_TS_slope.rst")
-amp2<-raster("ndvi_2001_2009_filling6__STA_amplitude2_TS_slope.rst")
-amplitude<-stack(amp0,amp1,amp2)
-amplitude_rast<-mask(amplitude_rast,mask_alaska)
-#plotRGB(amplitude, r=1, g=2, b=3) #not working because images are not bytes !!!
-plot(amplitude_rast) #multibands 3 amplitudes with A0,A1 and A2
-plotRGB(amplitude_rast, r=1, g=2, b=3,stretch="lin")
-plotRGB(amplitude_rast, r=1, g=2, b=3,colNA=c("white"))
-plotRGB(amplitude_rast, r=1, g=2, b=3,bgalpha=0)
-mask_alaska_rev<- mask_alaska >255
-
-mask_alaska_rev[is.na(mask_alaska_rev)]<-1
-mask_alaska_rev[mask_alaska_rev==0]<- NA
-infile_window1<-"window1_rec.shp"
-infile_window2<-"window2_rec.shp"
-window2_rast <- brick("window2_ndvi_sta_amplitude_image.rst") #Use brick for multiband!!!!
-
-window1<-readOGR(dsn=".",sub(".shp","",infile_window1))
-window2<-readOGR(dsn=".",sub(".shp","",infile_window2))
-
-#set up the output file to plot
-res_pix<-960
-col_mfrow<-1
-row_mfrow<-1
-png(filename=paste("Figure3_paper1_amplitude_image_Alaska",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(1,1))
-
-scale_position<-c(450000, 600000)
-arrow_position<-c(900000, 600000)
-
-plotRGB(amplitude_rast, r=1, g=2, b=3,stretch="lin",axes=FALSE,legend=FALSE)
-plot(window1,add=TRUE)
-plot(window2,add=TRUE)
-#opar <- par(fig=c(0.65, 0.9, 0.5, 0.75), new=TRUE)
-#plot(w_Anaktuvut_fire,border="yellowgreen",add=TRUE)
-#legend("topright",legend=c(0:7),title="Number of change",
-#       pt.cex=1.4,cex=2.1,fill=rev(terrain.colors(8)),bty="n")
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-#note that scale in SpatialPolygonRescale sets the size of the north arrow!!
-opar <- par(fig=c(0.7, 0.95, 0.5, 0.75), new=TRUE)
-plotRGB(window2_rast, r=1, g=2, b=3,stretch="lin",axes=FALSE,legend=FALSE)
-
-dev.off()
-
-###############
-##Figure 4: nubmer of change and change OR for 500 seg
-
-#load images to plot
-nb_c_500_seg<-raster("A_Change_image9_param_avg_seg_Alaska__500_01222013b_multicomp_1.rst")
-nb_c_500_seg_OR<- nb_c_500_seg >0
-
-#set up the output file to plot
-res_pix<-960
-col_mfrow<-2
-row_mfrow<-1
-png(filename=paste("Figure4_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
-                   width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(1,2))
-
-#set up plotting parameters
-#col_pal<-rev(terrain.colors(unique(nb_c_500_seg)))
-col_pal<-rev(terrain.colors(8))
-scale_position<-c(450000, 600000)
-arrow_position<-c(900000, 600000)
-
-##plot Fig 4a
-#plot(nb_c_500_seg,legend=FALSE,col=rev(terrain.colors(8)))
-plot(nb_c_500_seg,legend=FALSE,col=col_pal,axes="FALSE")
-legend("topright",legend=c(0:7),title="Number of change",
-       pt.cex=1.4,cex=2.1,fill=rev(terrain.colors(8)),bty="n")
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-#note that scale in SpatialPolygonRescale sets the size of the north arrow!!
-
-##plot Fig 4b
-plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"),axes="FALSE")
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-dev.off()
-
-###############################
-##Figure 5: change 500 for LST
-res_pix<-960
-col_mfrow<-1
-row_mfrow<-1
-png(filename=paste("Figure5_paper1_LSA1_change_Alaska",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-#par(mfrow=c(1,2))
-
-LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
-nb_c_500_seg_OR
-plot(LSTA1_change,legend=FALSE,col=c("black","red"),axes="FALSE")
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
-
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-dev.off()
-
-###############################
-##Figure 6: barplot land cover categories: change per number and shape parameters
-
-#not created in R...
-
-###############################
-##Figure 7: change 500 with fire polygons???
-infile_w_Anaktuvut<-"window_Anaktuvut_river_fire_12232011_rec.shp"
-w_Anaktuvut<-readOGR(dsn=".",sub(".shp","",infile_w_Anaktuvut))
-w_Anaktuvut_fire <-readOGR(dsn=".",sub(".shp","","window_MTBS_Anaktuvut.shp"))
-res_pix<-960
-col_mfrow<-1
-row_mfrow<-1
-png(filename=paste("Figure7_paper1_change_Alaska_fire_perimeters",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(row_mfrow,col_mfrow))
-
-#LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
-infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
-mtbs_pol <- readOGR(".",infile_fire)
-nb_c_500_seg_OR
-plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"),axes="FALSE")
-w1_rast<-crop(nb_c_500_seg_OR,w_Anaktuvut)
-#legend("topright",legend=c("no change","change"),title="Change category",
-#       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
-#lty=c( 1,-1,-1), pch=c(-1,15, 1)
-legend("topright",legend=c("MTBS fire","no change","change"),
-       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
-       cex=2.1, lwd(2.5,-1,-1),
-       lty=c( 1,-1,-1), pch=c(-1,15, 15),col=c("yellowgreen","black","red"),bty="n")
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-plot(mtbs_pol, add=TRUE,border="yellowgreen")
-plot(w_Anaktuvut,add=TRUE,border="white")
-opar <- par(fig=c(0.65, 0.9, 0.5, 0.75), new=TRUE)
-plot(w1_rast,axes=FALSE,legend=FALSE,col=c("black","red"))
-opar <- par(fig=c(0.65, 0.9, 0.5, 0.75), new=TRUE)
-plot(w_Anaktuvut_fire,border="yellowgreen",add=TRUE)
-dev.off()
-
-###############################
-##Figure 8: combined-- change 500 for NDVI A0 pix and seg
-res_pix<-960
-col_mfrow<-2
-row_mfrow<-1
-png(filename=paste("Figure_8_paper1_nb_c_OR_change_Alaska",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(row_mfrow,col_mfrow))
-
-##Figure 8a
-NDVIA0_c_pix<-raster("A_change_pixels_Alaska_NDVI_A0_c_500_01222013_multicomp_1.rst")
-plot(NDVIA0_c_pix,legend=FALSE,col=c("black","red"),axes="FALSE")
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-
-##Figure 8b
-NDVIA0_c_seg<-raster("A_avg_seg_change_Alaska__NDVI_A0_c_500_01222013_multicomp_1.rst")
-plot(NDVIA0_c_seg,legend=FALSE,col=c("black","red"),axes="FALSE")
-legend("topright",legend=c("no change","change"),title="Change category",
-       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=1.8)
-#this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-dev.off()
-
-#### End of script #####
-
-#
-#im_window = raster("/Users/benoitparmentier/Dropbox/Data/Dissertation_paper1_07142012/Figures_Dissertation_paper1/Figure1_Map_of_Study_area.png") 
-#im_window=as.matrix(w_map)
-#add.image(xpos=1000000, ypos=1500000,z=im_window, col=c("black","red"),
-#  image.width = 0.15) #points the left-bottom corner and the reative size of image 
-#par(new=TRUE, plt=c(0,1,0,1), mar=c(0,0,0,0), usr=c(0,1,0,1))
-#add.image(xpos=0,ypos=0,z=im_window, col=c("black","red"),
-#          image.width = 0.15)
-#use par new with usr
-#plot fire poly on the image inset
-
-#DIAGONAL LABELS AT TICK IN A PLOT!!!
-
-#text(axTicks(1), par("usr")[3] - 2, srt=45, adj=1,
-#     labels=c("Mon", "Tue", "Wed", "Thu", "Fri"),
-#     xpd=T, cex=0.8)
+source("paper1_dissertation_03052013_change_modification1_figures.R")
