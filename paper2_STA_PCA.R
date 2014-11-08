@@ -6,6 +6,9 @@ library(raster)                                                                 
 library(gtools)                                                                        # loading ...
 library(sp)
 library(gplots)
+library(rgdal)
+library(RColorBrewer)
+library(gdata) #contains read.xls function
 
 ###Parameters and arguments
 
@@ -14,17 +17,10 @@ infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 path<-'C:/Users/parmentier/Dropbox/Data/Dissertation_paper2_04142012'
 path<-'//Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012'
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
-out_prefix <-"_05132012_"
+out_prefix <-"_paper2_sta_11082014_"
 setwd(path)
 
 ####Start of th script##
-091612  0.00	46.50	24.80	5.80	15.50	0.00
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-092612  0.00	45.30	13.00	3.50	8.10	0.00
-092712	0.00	45.30	14.00	2.20	6.90	0.00
-092812	0.00	45.30	16.70	3.60	9.10	0.00
-092912	0.00	45.30	15.30	6.70	11.60	0.00
-093012	0.00	45.30	16.20	4.80	9.20	    
 
 temp<-read.csv(paste(path,"/",infile1, sep=""), header=TRUE, na.strings="#NULL!")
 data_extract<-read.csv(paste(path,"/",infile2,sep=""))
@@ -399,23 +395,23 @@ mean_PC1_HL1_NDVIA0_y1<-tapply(d14b_B$NDVI.A0.y1,d14b_B$PC1_HL1, mean, na.rm=TRU
 ###END OF SCRIPT
         
 # plot means and
-data(state)
-tmp   <- split(state.area, state.region)
-means <- sapply(tmp, mean)
-stdev <- sqrt(sapply(tmp, var))
-n     <- sapply(tmp,length)
-ciw   <- qt(0.975, n) * stdev / sqrt(n)
+#data(state)
+#tmp   <- split(state.area, state.region)
+#means <- sapply(tmp, mean)
+#stdev <- sqrt(sapply(tmp, var))
+#n     <- sapply(tmp,length)
+#ciw   <- qt(0.975, n) * stdev / sqrt(n)
         
 # plain
-plotCI(x=means, uiw=ciw)
+#plotCI(x=means, uiw=ciw)
         
 # prettier
-plotCI(x=means, uiw=ciw, col="black", barcol="blue", lwd=1)
+#plotCI(x=means, uiw=ciw, col="black", barcol="blue", lwd=1)
         
 # give mean values
-plotCI(x=means, uiw=ciw, col="black", barcol="blue",
-labels=round(means,-3), xaxt="n", xlim=c(0,5) )
-axis(side=1, at=1:4, labels=names(tmp), cex=0.7)
+#plotCI(x=means, uiw=ciw, col="black", barcol="blue",
+#labels=round(means,-3), xaxt="n", xlim=c(0,5) )
+#axis(side=1, at=1:4, labels=names(tmp), cex=0.7)
         
 # better yet, just use plotmeans ... #
-plotmeans( state.area ~ state.region )
+#plotmeans( state.area ~ state.region )
