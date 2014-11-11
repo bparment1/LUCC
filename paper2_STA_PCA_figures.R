@@ -1,7 +1,15 @@
-#This script reproduces and extend the analysis for paper 2 from the dissertation.
-#Script created by Benoit Parmentier on May 5, 2012
+#################################    PCA - STA    #######################################
+###########################  multi comparison tests  #############################################
+#This script is a first attempt at using R for multi-comparison tests...                       #
+#AUTHOR: Benoit Parmentier                                                                       #
+#DATE CREATED: 05/08/2012 
+#DATE MODIFIED: 11/10/2014
+#
+#PROJECT: Land transitions from Remote Sensing: Dissertation paper 2
+##################################################################################################
 
-###Loading r library and packages
+###Loading r library and packages                                                      # loading the raster package
+
 library(raster)                                                                        # loading the raster package
 library(gtools)                                                                        # loading ...
 library(sp)
@@ -10,6 +18,7 @@ library(rgdal)
 library(RColorBrewer)
 library(gdata)
 library(plotrix)
+library(rasterVis)
 
 ###Parameters and arguments
 
@@ -19,6 +28,9 @@ path<-'C:/Users/parmentier/Dropbox/Data/Dissertation_paper2_04142012'
 path<-'//Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012'
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
 out_prefix <-"_paper2_sta_11082014_"
+
+proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+
 setwd(path)
 
 ####Start of th script##
@@ -129,14 +141,13 @@ lm8<-lm(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600))
 
 
 ###########  PLOTTING FIGURES FOR THE PAPER ##############
+
 ### FIRST READ IN ECOREGION INFORMATION
 #out_prefix <- "_05132013_multicomp_1"
-out_prefix <-"_paper2_sta_11082014_"
 
 infile_ecoreg<-"wwf_terr_ecos_Alaska.shp"
 ecoreg_spdf<-readOGR(dsn=".",sub(".shp","",infile_ecoreg))
 proj4string(ecoreg_spdf)
-proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
 ecoreg_spdf_ALB83<-spTransform(ecoreg_spdf,CRS(proj_ALB83))
 outfile4<-paste("wwf_terr_ecos_Alaska_ALB83","_",out_prefix,".shp",sep="")
@@ -210,12 +221,6 @@ plot(ecoreg_rast,col=col_eco,legend=FALSE,axes="FALSE")
 
 infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
 mtbs_pol <- readOGR(".",infile_fire)
-#nb_c_500_seg_OR
-#plot(nb_c_500_seg_OR,legend=FALSE,col=c("black","red"),axes="FALSE")
-#w1_rast<-crop(nb_c_500_seg_OR,w_Anaktuvut)
-#legend("topright",legend=c("no change","change"),title="Change category",
-#       pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n")
-#lty=c( 1,-1,-1), pch=c(-1,15, 1)
 
 plot(mtbs_pol, add=TRUE,border="black")
 
@@ -252,24 +257,24 @@ pc_dat_eigen <- read.xls(in_file_xlsx, 2)
 
 ### Figure 3a
 ### PLOT AVERAGE MEAN PER CHANGE NO  CHANGE
+m <- rbind(c(1, 1), c(2, 3))
+print(m)
+
+res_pix<-480*1.5
+col_mfrow<- 1
+row_mfrow<- 1
+
+png(filename=paste("Figure3_paper2_sree_plot",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+layout(m)
+#par(mar = c(3, 3, 0, 0))
 
 plot(pc_dat_eigen$PC,pc_dat_eigen$pct_variance,
      type="b",
-     col="blue",xlab="PRINCIPAL COMPONENTA",ylab="% VARIANCE")
+     col="blue",xlab="PRINCIPAL COMPONENT",ylab="% VARIANCE")
 legend("bottomleft",legend=c("a."),
        cex=1.2,bty="n")
-
-#plot.new()
-#par(mar=c(2,2,1,1))
-#k <- 4
-#f <- function() 
-#  plot(rnorm(20),rnorm(20), xlab="", ylab="", main="", las=1)
-#for(i in 1:k) {
-#  par(fig=c(0,i/(k+1), (i-1)/k, i/k), new=TRUE)
-#  f()
-#  par(fig=c(i/(k+1),1, (i-1)/k, i/k), new=TRUE)
-#  f()
-#}
 
 ### Figure 3b
 ### PLOT AVERAGE MEAN PER CHANGE NO  CHANGE
@@ -280,7 +285,7 @@ sd_PC1 <- tapply(data$FAC1_1,data$BURNT, sd, na.rm=TRUE)
 
 means <- mean_PC1
 stdev <- sd_PC1
-n     <- table(data$BURNT)[1]
+n     <- table(data$BURNT)
 ciw   <- qt(0.975, n) * stdev / sqrt(n)
 ciw<-stdev    
 plotCI(x=c(0,1),y=means, uiw=ciw, col="black", 
@@ -321,6 +326,7 @@ grid(2,2)
 #axis(1, at=c(0,1)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
 #axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
 #box()    #This draws a box...
+dev.off()
 
 ######################################
 ##### Figure 4: dNBR and PC1
@@ -338,34 +344,57 @@ grid(2,2)
 # SEVERITY AT THE POLYGON LEVEL: ANALYSIS FOR PAPER
 
 mean_Pol_Severity_PC1<-tapply(data_pol$Pol_PC1, data_pol$Pol_Severity, mean, na.rm=TRUE)
+std <-tapply(data_pol$Pol_PC1, data_pol$Pol_Severity, sd, na.rm=TRUE)[1:2]
+
 x<- mean_Pol_Severity_PC1[1:2]
 #X11(width=55,height=45)
 
+res_pix<-480*1.5
+col_mfrow<- 2
+row_mfrow<- 1
+m <- rbind(c(1, 2))
+print(m)
+
+png(filename=paste("Figure5_paper2_burnt_severity",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+layout(m)
 ##############
 ### Figure 5a
 
-plot(c(0,1), x, xlim=c(-.2, 1.2), ylim=c(-.4,1), type="l", axes=FALSE,
-     col="red", xlab="BOOLEAN SEVERITY", ylab="MEAN PC1 SCORES")
-points(c(0,1), x, pch=1)
-axis(1, at=c(0,1)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
-axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
-box()    #This draws a box...
-
-savePlot(paste("Boolean_burnt_severity_",out_prefix,".tiff", sep=""), type="tiff")
-tiff(filename=paste(path,"Boolean_burnt_severity_t_",out_prefix,".tiff", sep=""))
+means <- x
+stdev <- std
+n     <- table(data_pol$Pol_Severity)
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=c(0,1),y=means, uiw=ciw, col="black", 
+       scol="red",
+       #labels=round(means,-3), 
+       xaxt="n", 
+       xlim=c(-0.2,1.2),ylim=c(-1.8,1.8), 
+       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+lines(c(0,1),means)
+legend("bottomleft",legend=c("a."),
+       cex=1.2,bty="n")
+legend("topleft",legend=c("y = -0.589 x + 1.171","p<0.001"),
+       cex=1.2,bty="n")
 
 ##############
 ### Figure 5b
 
 ## Plot ofr log of area...
-plot(Pol_logarea, Pol_PC1)
+#plot(Pol_logarea, Pol_PC1)
 plot(Pol_logarea, Pol_PC1, xlim=c(4, 13), ylim=c(-2,2), type="p", axes=FALSE,
      col="black", cex=0.7,xlab="FIRE SIZE (LOG OF AREA IN HA)", ylab="MEAN PC1 SCORES")
 #points(c(0,1), x, pch=1) #Note that cex is used for hte size of the symbol to be used.
 axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
 axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
 box()    #This draws a box...
-lm9<-lm(Pol_PC1~Pol_Severity)
+
+dev.off()
+
+#lm9<-lm(Pol_PC1~Pol_Severity)
 
 ##########################################
 #### Figure 6: LAND COVER AND PC1
@@ -464,7 +493,6 @@ lmt<-lm(data_BURNT$FAC1_1~data_BURNT$F_t2)
 mean_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, mean, na.rm=TRUE)
 sd_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t1, sd, na.rm=TRUE) #This contains the standard deviation for
 
-
 #### NOW PLOT FIGURE 6
 
 #PC1 and the different land covers.
@@ -475,17 +503,17 @@ x_cat<-c("NWV","LSH","HSH", "MX", "DEC", "EGF")
 data_BURNT$F_type_f<-factor(data_BURNT$F_t2, labels=x_cat, exclude="NULL")
 means<- mean_PC1_t2
 stdev<-sd_PC1_t2
-        
-#PLOT WITH STD_DEV AS  WIDTH FOR PC1
-tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
-means <- sapply(tmp, mean)
-stdev <- sqrt(sapply(tmp, var))
-n     <- sapply(tmp,length)
-ciw   <- qt(0.975, n) * stdev / sqrt(n)
-ciw<-stdev    
-plotCI(x=means, uiw=ciw, col="black", barcol="blue",
-      labels=round(means,-3), xaxt="n", xlim=c(1,6),ylim=c(-1,2), xlab="LAND COVER TYPES",ylab="PC1 SCORES")
-      axis(side=1, at=1:6, labels=x_cat, cex=0.7)
+
+res_pix<-480*1.5
+col_mfrow<- 2
+row_mfrow<- 1
+m <- rbind(c(1, 2))
+print(m)
+
+png(filename=paste("Figure6_paper2_mean_PC1_scores",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+layout(m)
         
 ####PLOT WITH STD_DEV AS  WIDTH FOR PC1
 tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
@@ -501,11 +529,11 @@ plotCI(x=means, uiw=ciw, col="black", scol="blue",
 
 #To summarize data by polygon, one can also use "aggregate for all or the selected variables!!
 #test2<-aggregate(cbind(dNBR_mean_NA, FAC1_1)~F_type, data=subset(data,BURNT==1), mean)
-var_BURNT<-names(data_BURNT)
+#var_BURNT<-names(data_BURNT)
 
-plot(Pol_Ft7_prop, Pol_PC1)
+#plot(Pol_Ft7_prop, Pol_PC1)
 
-data_pol2<-aggregate(data_BURNT[,3]~ID_POL, data=data_BURNT, mean, na.rm=TRUE) #FOR dNBR you can have it in a loop.
+#data_pol2<-aggregate(data_BURNT[,3]~ID_POL, data=data_BURNT, mean, na.rm=TRUE) #FOR dNBR you can have it in a loop.
 
 ###Figure 6 b!
 ## Land cover 7: proportion of evergreen forest
@@ -518,6 +546,8 @@ axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to ax
 box()    #This draws a box...
 abline(Pol_PC1,Pol_Ft7_prop)  
 
+dev.off()
+
 #######################################
 #### Now Figure 7
 #Figure 7. The average PC1 score for the CHANGE variable indicates that 
@@ -527,13 +557,130 @@ abline(Pol_PC1,Pol_Ft7_prop)
 #### Now Figure 8
 #Figure 8. The average PC2 score increases when the age of the burned areas increases.
 
+
 ######################################
 #### Now Figure 9
 #Figure 9. Average trends for all change and no-change areas (burned and unburned pixels) 
 #for the four variables that contribute the most to PC1: Note that with the exception of NDVI_A0, all Theil Sen slope increase in values in burned areas compared to unburned areas.
 
+res_pix<-480*1.5
+col_mfrow<- 2
+row_mfrow<- 2
+m <- rbind(c(1, 2),c(3,4))
+print(m)
+
+png(filename=paste("Figure9_paper2_mean_PC1_scores_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+layout(m)
+
+##Figure 9a: NDVI_A0
+
+mean_val <- tapply(data$NDVI_A0,data$BURNT, mean, na.rm=TRUE)
+sd_val <- tapply(data$NDVI_A0,data$BURNT, sd, na.rm=TRUE)  
+
+means <- mean_val
+stdev <- sd_val
+n     <- table(data$BURNT)
+
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=c(0,1),y=means, uiw=ciw, col="black", 
+       scol="red",
+       #labels=round(means,-3), 
+       xaxt="n", 
+       xlim=c(-0.2,1.2),ylim=c(-0.02,0.01), 
+       xlab="BURNED",ylab="NDVI_A0",font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+lines(c(0,1),means)
+legend("bottomleft",legend=c("a."),
+       cex=1.2,bty="n")
+legend("topleft",legend=c("Y = 0.001 - 0.008 X","p<0.001"),
+       cex=1.2,bty="n")
+
+##Figure 9b: ALB_A0
+
+mean_val <- tapply(data$ALB_A0,data$BURNT, mean, na.rm=TRUE)
+sd_val <- tapply(data$ALB_A0,data$BURNT, sd, na.rm=TRUE)  
+
+means <- mean_val
+stdev <- sd_val
+n     <- table(data$BURNT)
+
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=c(0,1),y=means, uiw=ciw, col="black", 
+       scol="red",
+       #labels=round(means,-3), 
+       xaxt="n", 
+       xlim=c(-0.2,1.2),ylim=c(-1.8,1.8), 
+       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+lines(c(0,1),means)
+legend("bottomleft",legend=c("a."),
+       cex=1.2,bty="n")
+legend("topleft",legend=c("Y = -0.0003 + 0.04X","p<0.001"),
+       cex=1.2,bty="n")
+
+##Figure 9c: ALB_A1
+
+mean_val <- tapply(data$ALB_A1,data$BURNT, mean, na.rm=TRUE)
+sd_val <- tapply(data$ALB_A1,data$BURNT, sd, na.rm=TRUE)  
+
+means <- mean_val
+stdev <- sd_val
+n     <- table(data$BURNT)
+
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=c(0,1),y=means, uiw=ciw, col="black", 
+       scol="red",
+       #labels=round(means,-3), 
+       xaxt="n", 
+       xlim=c(-0.2,1.2),ylim=c(-1.8,1.8), 
+       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+lines(c(0,1),means)
+legend("bottomleft",legend=c("a."),
+       cex=1.2,bty="n")
+legend("topleft",legend=c("y = -0.005  + 0.04 X","p<0.001"),
+       cex=1.2,bty="n")
+
+##Figure 9d: LST_A1
+
+mean_val <- tapply(data$LST_A1,data$BURNT, mean, na.rm=TRUE)
+sd_val <- tapply(data$LST_A1,data$BURNT, sd, na.rm=TRUE)  
+
+means <- mean_val
+stdev <- sd_val
+n     <- table(data$BURNT)
+
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+ciw<-stdev    
+plotCI(x=c(0,1),y=means, uiw=ciw, col="black", 
+       scol="red",
+       #labels=round(means,-3), 
+       xaxt="n", 
+       xlim=c(-0.2,1.2),ylim=c(-1.8,1.8), 
+       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+lines(c(0,1),means)
+legend("bottomleft",legend=c("a."),
+       cex=1.2,bty="n")
+legend("topleft",legend=c("y = -0.005  + 0.04 X","p<0.001"),
+       cex=1.2,bty="n")
+
 ####################################
 #### Add new figure: scores for fire and no fire areas...
+
+LSTA1_change<-raster("A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst")
+coordinates(data) <- c("x_AK83","y_AK83")
+proj4string(data) <- proj_ALB83
+
+r <- rasterize(data,LSTA1_change,"FAC1_1")
+#temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+#temp.colors <- matlab.like(no_brks)
+
 
 
 ####### End of script ########
