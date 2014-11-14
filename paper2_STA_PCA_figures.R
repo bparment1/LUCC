@@ -72,19 +72,20 @@ data_extract<-read.csv(file.path(path,infile2)) # Additional data: ID pol, slope
 data2<-cbind(temp,data_extract) #combining both datasets...
 rm(temp)
 data<-data2
-data<-subset(data2,unfilled==0)
+dim(data2) #146,426x69
+data<-subset(data2,unfilled==0) #134,781 x 69
 
 #date<-paste(data2$year,data2$Month,data2$Day, sep="")
-date<-ISOdate(data$year,data$Month,data$Day)
+date<-ISOdate(data$year,data$Month,data$Day) #add date
 date2<-as.POSIXlt(as.Date(date))  #values of day=0 and month=1 are NA 
 data$DOY<-date2$yday #This gives the DOY (day of year) any day of year above 160 is potentially high severity
 
 data$dNBR_mean_NA<-data$dNBR_mean   #Creating a new variable dNBR with NA set for all values below -600
 data$dNBR_mean_NA[data$dNBR_mean_NA< -600]<-NA   #This assign NA to all values below -600
 
-### Adding variables for ANALYSIS OF SEVERITY
+### Adding variables for ANALYSIS OF SEVERITY: Generating categorical varriable size of fire and date of ignition
 
-# another example: create 5 categories for 
+# another example: create 5 categories 
 attach(data)
 data$Severity[DOY>=160 & area_ha>=60000] <- 1
 data$Severity[DOY<160 & area_ha<60000] <- 0
@@ -100,7 +101,7 @@ unique(data$Severity) #This will show the unique values as well as if there are 
 x<-data$Severity
 sum(is.na(x)) # Find out the number of na in a dataset...
 
-data_B<-subset(data, BURNT==1)
+#data_B<-subset(data, BURNT==1) #subset, only data that have been burnt
 mean_cat_PC1<-tapply(data_B$FAC1_1,data_B$PC1_catPC1_cat, mean, na.rm=TRUE)
 mean_area_PC1<-tapply(data_B$area_ha,data_B$PC1_catPC1_cat, mean, na.rm=TRUE)
 
@@ -109,6 +110,7 @@ plot(mean_area_PC1)
 #mean_area_PC1<-tapply(data_BURNT$area_ha,data_BURNT$PC1_catPC1_cat, mean, na.rm=TRUE)
 
 lm5<-lm(FAC1_1~Severity, data=subset(data, BURNT==1))
+summary(lm5)
 lm5 <- lm(FAC1_1~dNBR_mean_NA,data)
 plot(FAC1_1~dNBR_mean_NA,pch=20,data)
 
@@ -127,8 +129,9 @@ lm5<-lm(FAC1_1~area_ha, data_BURNT)
      
 hist(data_BURNT$area_ha)
 
-# CREATING AVERAGEA PER POLYGONS !
+# CREATING AVERAGE PER POLYGONS FROM THE MTBS database!
 
+#Could probably use aggregate...
 Pol_ID<-tapply(data_BURNT$ID_POL,data_BURNT$ID_POL, max, na.rm=TRUE)
 Pol_area<-tapply(data_BURNT$area_ha,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_logarea<-log(Pol_area)
@@ -144,6 +147,7 @@ Pol_Ft5_prop<-tapply(data_BURNT$Ft6_prop,data_BURNT$ID_POL, mean, na.rm=TRUE)
 
 #binding everything in a dataframe
 data_pol<-as.data.frame(cbind(Pol_ID,Pol_PC1,Pol_PC2,Pol_dNBR,Pol_DOY,Pol_area,Pol_logarea,Pol_Severity,Pol_Severity,Pol_Ft7_prop,Pol_Ft6_prop,Pol_Ft5_prop))
+dim(data_pol) # 449 x12 , each row is a fire polygon and columns are attributes
 #Save in a textfile
 #write.table(data_pol, file= paste(path,"/","data_pol_",out_prefix,".txt",sep=""), sep=",")
 write.table(data_pol, file= file.path(out_dir,paste("data_pol_",out_prefix,".txt",sep="")), sep=",")
@@ -152,8 +156,9 @@ write.table(data_pol, file= file.path(out_dir,paste("data_pol_",out_prefix,".txt
 #test2<-aggregate(cbind(dNBR_mean_NA, FAC1_1)~F_type, data=subset(data,BURNT==1), mean)
 var_BURNT<-names(data_BURNT)
 
-plot(Pol_Ft7_prop, Pol_PC1)
+plot(Pol_Ft7_prop, Pol_PC1) #is this  deciudous forest?
 
+#summarize by dNBR_max
 data_pol2<-aggregate(data_BURNT[,3]~ID_POL, data=data_BURNT, mean, na.rm=TRUE) #FOR dNBR you can have it in a loop.
 
 attach(data_pol)
@@ -166,6 +171,8 @@ table(data_pol$Severity)
 lm17<-lm(Pol_PC1~Severity3,data=data_pol)
 plot(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600)) #Showing the relationship
 lm13<-lm(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600)) #Showing the relationship
+summary(lm13)
+sqrt(0.147) #0.383
 
 lm14<-lm(Pol_PC1~Pol_Ft7_prop)
 lm7<-lm(Pol_area~Pol_PC1)
@@ -358,10 +365,14 @@ grid(2,2)
 dev.off()
 
 ######################################
-##### Figure 4: dNBR and PC1
+##### Figure 4: dNBR_mean and PC1 relationship
 
 #Done outside R
-lm5 <- lm(FAC1_1~dNBR_mean_NA,data)
+lm5 <- lm(FAC1_1~dNBR_mean_NA,data) #
+#lm5 <- lm(FAC1_1~dNBR_mean,data) # This gives better results
+
+#summary(lm5)
+sqrt(0.2506)
 
 res_pix<-480*1.5
 col_mfrow<- 1
@@ -720,7 +731,7 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(0.25,0.9), 
-       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",font=2)
+       xlab="BOOLEAN SEVERITY",ylab="LST_A1",font=2)
 axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("a."),
@@ -739,7 +750,9 @@ dev.off()
 #### Add new figure: scores for fire and no fire areas...
 
 data$age <- (2001 - data$Fire_year)*-1  
+unique(data$age)
 data$age[data$age == -2001] <- -1 
+unique(data$age)
 
 test <-aggregate(data$FAC2_1~data$age,FUN=mean)
 cor(test[1],test[2])
@@ -748,7 +761,7 @@ boxplot(data$FAC2_1~data$age)
 lm_age <- lm(data$FAC2_1 ~ data$age) #cor R is 0.22
 lm_age2 <- lm(FAC2_1 ~ age,subset(data,data$age >0)) # corr R is 0.411
 summary(lm_age2)
-
+sqrt(0.1696)
 #lm_Ftype3 <- lm(FAC2_1 ~ F_type3,data)
 boxplot(data$FAC2_1 ~ data$BURNT) #no relation with burnt?
 boxplot(data$FAC1_1 ~ data$BURNT) #no relation with burnt?
@@ -779,73 +792,79 @@ temp.colors2 <- matlab.like(25)
 plot(r_PC1,col=temp.colors(25))
 plot(mask_sp,add=T)
 
-plot(r_PC2,col=temp.colors2)
+plot(r_PC2,col=temp.colors2,xlab="",ylab="")
 plot(r_PC2,col=temp.colors(25))
 #title("PC2 scores map")
 
-res_pix<-960*2
-col_mfrow<-1
+res_pix<-960
+col_mfrow<-2
 row_mfrow<-1
 png(filename=paste("Figure10_paper2_PC1_component_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(1,2))
 
-plot(r_PC1,col=temp.colors2)
+plot(r_PC1,col=temp.colors2,,axes="FALSE",cex=3)
 plot(mask_sp,add=T)
-plot(r_dNBR,col=temp.colors2)
+title("(a) PC1 scores",cex=3)
+plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3)
 plot(mask_sp,add=T)
-
-legend("topright",legend=cat_names,title="Ecoregions",
-       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
+title("(b) Fire severity (dNBR)",cex=3)
+            
+#legend("topright",legend=cat_names,title="Ecoregions",
+#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
 #legend("topleft",legend=c("MTBS fire"),
 #       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
 #       cex=2.1, lwd(2.5),
 #       lty=c(1), pch=c(-1),col=c("black"),bty="n")
 
-scale_position<-c(450000, 600000)
-arrow_position<-c(900000, 600000)
+#scale_position<-c(450000, 600000)
+#arrow_position<-c(900000, 600000)
 
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=3)
+#label_scalebar<-c("0","125","250")
+#scalebar(d=250000, xy=scale_position, type = 'bar', 
+#         divs=3,label=label_scalebar,below="kilometers",
+#         cex=3)
 #this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
 
 dev.off()
 
 
 ### Now PC2
 
-res_pix<-960*2
-col_mfrow<-1
+res_pix<-960
+col_mfrow<-2
 row_mfrow<-1
-png(filename=paste("Figure10_paper2_PC1_component_",out_prefix,".png",sep=""),
+png(filename=paste("Figure10_paper2_PC2_component_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(1,2))
-plot(r_age)
+
 plot(r_PC2,col=temp.colors2)
 plot(mask_sp,add=T)
+title("(a) PC2 scores",cex=3)
 
+plot(r_age,col=temp.colors2)
+plot(mask_sp,add=T)
+title("(b) Age of burned scars",cex=3)
 
-legend("topright",legend=cat_names,title="Ecoregions",
-       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
+#legend("topright",legend=cat_names,title="Ecoregions",
+#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
 #legend("topleft",legend=c("MTBS fire"),
 #       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
 #       cex=2.1, lwd(2.5),
 #       lty=c(1), pch=c(-1),col=c("black"),bty="n")
 
-scale_position<-c(450000, 600000)
-arrow_position<-c(900000, 600000)
+#scale_position<-c(450000, 600000)
+#arrow_position<-c(900000, 600000)
 
-label_scalebar<-c("0","125","250")
-scalebar(d=250000, xy=scale_position, type = 'bar', 
-         divs=3,label=label_scalebar,below="kilometers",
-         cex=3)
+#label_scalebar<-c("0","125","250")
+#scalebar(d=250000, xy=scale_position, type = 'bar', 
+#         divs=3,label=label_scalebar,below="kilometers",
+#         cex=3)
 #this work on non sp plot too
-SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
 
 dev.off()
 
