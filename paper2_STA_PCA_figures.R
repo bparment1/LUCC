@@ -1,13 +1,15 @@
 #################################    PCA - STA    #######################################
 ###########################  multi comparison tests  #############################################
-#This script is a first attempt at using R for multi-comparison tests...                       #
+#This script analyzes  PCA-STA output from dissertation paper 2 from Benoit Parmentier.
+#The PCA was carried out on a subset of 9 STA trends  images on burnt-unburnt areas.
+#Figures are generated for the paper submitted.
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 05/08/2012 
-#DATE MODIFIED: 11/11/2014
+#DATE MODIFIED: 11/19/2014
 #
-#PROJECT: Land transitions from Remote Sensing: Dissertation paper 2
+#PROJECT: Land transitions from Remote Sensing: Dissertation paper 2 (Benoit Parmentier)
 ##################################################################################################
-
+#
 ###Loading r library and packages                                                      # loading the raster package
 
 library(raster)                                                                        # loading the raster package
@@ -47,7 +49,7 @@ infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 #infile1<-'ID_all_polygons_12232011_PCA_03182012c.xlsx'
 path<-'/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012' #input path
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
-out_prefix <-"_paper2_sta_11082014_"
+out_prefix <-"_paper_sta_pca_11192014_"
 
 proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
@@ -101,7 +103,7 @@ unique(data$Severity) #This will show the unique values as well as if there are 
 x<-data$Severity
 sum(is.na(x)) # Find out the number of na in a dataset...
 
-#data_B<-subset(data, BURNT==1) #subset, only data that have been burnt
+data_B<-subset(data, BURNT==1) #subset, only data that have been burnt
 mean_cat_PC1<-tapply(data_B$FAC1_1,data_B$PC1_catPC1_cat, mean, na.rm=TRUE)
 mean_area_PC1<-tapply(data_B$area_ha,data_B$PC1_catPC1_cat, mean, na.rm=TRUE)
 
@@ -223,7 +225,7 @@ if (!file.exists(lf_eco[1])){
   projection(ecoreg_rast)<-proj_ALB83
   data_name<-paste("ecoregion_map",sep="")
   raster_name<-paste(data_name,".rst", sep="")
-  writeRaster(ecoreg_rast, filename=file.path(out_dir,raster_name,NAflag=-999,overwrite=TRUE))  #Writing the data in a raster file format...
+  writeRaster(ecoreg_rast, filename=file.path(out_dir,raster_name),NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
 }
 if (file.exists(lf_eco[1])){
   ecoreg_rast<-raster(lf_eco)
@@ -365,7 +367,7 @@ grid(2,2)
 dev.off()
 
 ######################################
-##### Figure 4: dNBR_mean and PC1 relationship
+##### Figure 4: dNBR_mean and PC1 relationship as scatter plot
 
 #Done outside R
 lm5 <- lm(FAC1_1~dNBR_mean_NA,data) #
@@ -386,9 +388,69 @@ layout(m)
 plot(FAC1_1~dNBR_mean_NA,pch=20,data)
 
 dev.off()
- 
+
+######################################
+##### Figure 5: dNBR_mean and PC1 relationship
+
+LSTA1_change<-raster(file.path(path,"A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst"))
+coordinates(data) <- c("x_AK83","y_AK83")
+proj4string(data) <- proj_ALB83
+
+infile_mask <- "mask_Alaska_11112014.shp"
+mask_sp <-readOGR(dsn=path,sub(".shp","",infile_mask))
+proj4string(mask_sp) <- proj_ALB83
+
+#Create raster image for PC components and mask them
+r_PC1 <- rasterize(data,LSTA1_change,"FAC1_1")
+r_PC1 <- mask(r_PC1,mask=LSTA1_change)
+
+r_dNBR <- rasterize(data,LSTA1_change,"dNBR_mean")
+r_dNBR <- mask(r_dNBR,mask=LSTA1_change)
+
+temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+temp.colors2 <- matlab.like(25)
+#plot(r_PC1,col=temp.colors(25))
+#plot(mask_sp,add=T)
+
+res_pix <- 600
+col_mfrow<-2
+row_mfrow<-1
+png(filename=paste("Figure5_paper2_PC1_component_and_dNBR",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+par(mfrow=c(1,2))
+
+plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)#,legend.mar=c(3.1,4.1))  
+#Amount to shrink the size of legend relative to the full height or width of the plot.)
+#legend.with is set to increase the  width of the color palette
+plot(mask_sp,add=T)
+title("(a) Fire severity (dNBR)",cex.main=1.5)
+
+plot(r_PC1,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)
+plot(mask_sp,add=T)
+title("(b) PC1 scores",cex.main=1.5)
+
+#legend("topright",legend=cat_names,title="Ecoregions",
+#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
+#legend("topleft",legend=c("MTBS fire"),
+#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+#       cex=2.1, lwd(2.5),
+#       lty=c(1), pch=c(-1),col=c("black"),bty="n")
+
+#scale_position<-c(450000, 600000)
+#arrow_position<-c(900000, 600000)
+
+#label_scalebar<-c("0","125","250")
+#scalebar(d=250000, xy=scale_position, type = 'bar', 
+#         divs=3,label=label_scalebar,below="kilometers",
+#         cex=3)
+#this work on non sp plot too
+#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+
+dev.off()
+
 ###################################
-##### Figure 5: Severity and PC1
+##### Figure 6: Severity and PC1
 
 #Figure 5. Relationship between PC1 scores and severity: 
 #(a)  High severity burn areas (category 1) has a high average PC1 score of about 1 
@@ -411,12 +473,12 @@ row_mfrow<- 1
 m <- rbind(c(1, 2))
 #print(m)
 
-png(filename=paste("Figure5_paper2_burnt_severity_based_on_polygon",out_prefix,".png",sep=""),
+png(filename=paste("Figure6_paper2_burnt_severity_based_on_polygon",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
 ##############
-### Figure 5a
+### Figure 6a
 
 means <- x
 stdev <- std
@@ -437,7 +499,7 @@ legend("bottomleft",legend=c("a."),
 #       cex=1.2,bty="n")
 
 ##############
-### Figure 5b
+### Figure 6b
 
 ## Plot ofr log of area...
 #plot(Pol_logarea, Pol_PC1)
@@ -458,7 +520,7 @@ summary(lm9)
 sqrt(0.2083) # R is 0.456
 
 ##########################################
-#### Figure 6: LAND COVER AND PC1
+#### Figure 7: LAND COVER AND PC1
 
 #LAND COVER           
 # 7: B-W spruce (evergreen forest)
@@ -503,6 +565,7 @@ mean_PC1_cat_prop5<-tapply(data2$Ft5_prop,data2$PC1_catPC1_cat, mean, na.rm=TRUE
 plot(mean_PC1_cat_prop5)        
                 
 # another example: create 5 categories for 
+data <- as.data.frame(data)
 attach(data)
 data$F_t1[F_type.1==0] <- NA #Assigning NA to category 0
 data$F_t1[F_type.1==1] <- 1
@@ -554,7 +617,7 @@ lmt<-lm(data_BURNT$FAC1_1~data_BURNT$F_t2)
 mean_PC1_t3<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t3, mean, na.rm=TRUE)
 sd_PC1_t1<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t1, sd, na.rm=TRUE) #This contains the standard deviation for
 
-#### NOW PLOT FIGURE 6
+#### NOW PLOT FIGURE 7
 
 #PC1 and the different land covers.
 sd_PC1_t2<-tapply(data_BURNT$FAC1_1,data_BURNT$F_t2, sd, na.rm=TRUE)
@@ -571,7 +634,7 @@ row_mfrow<- 1
 m <- rbind(c(1, 2))
 #print(m)
 
-png(filename=paste("Figure6_paper2_mean_PC1_scores",out_prefix,".png",sep=""),
+png(filename=paste("Figure7_paper2_mean_PC1_scores",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
@@ -599,7 +662,7 @@ legend("bottomleft",legend=c("a."),
 
 #data_pol2<-aggregate(data_BURNT[,3]~ID_POL, data=data_BURNT, mean, na.rm=TRUE) #FOR dNBR you can have it in a loop.
 
-###Figure 6 b!
+###Figure 7 b!
 ## Land cover 7: proportion of evergreen forest
 #plot(Pol_Ft7_prop, Pol_PC1)
 plot(Pol_Ft7_prop, Pol_PC1, xlim=c(0, 1), ylim=c(-2,2), type="p", axes=FALSE,
@@ -615,20 +678,92 @@ legend("bottomleft",legend=c("b."),
 dev.off()
 
 #######################################
-#### Now Figure 7
-#Figure 7. The average PC1 score for the CHANGE variable indicates that 
+#### Now Figure 8
+
+#Figure 8. The average PC1 score for the CHANGE variable indicates that 
 #the mean scores for PC1 increase when the number of significant changes increases. 
 
 
-
-######################################
-#### Now Figure 8
-#Figure 8. The average PC2 score increases when the age of the burned areas increases.
-
-#This is done after figure 9
-
 ######################################
 #### Now Figure 9
+#Figure 9. The average PC2 score increases when the age of the burned areas increases.
+
+### Now PC2
+coordinates(data) <- c("x_AK83","y_AK83")
+proj4string(data) <- proj_ALB83
+
+data$age <- (2001 - data$Fire_year)*-1  
+unique(data$age)
+data$age[data$age == -2001] <- -1 
+unique(data$age)
+
+test <-aggregate(data$FAC2_1~data$age,FUN=mean)
+cor(test[1],test[2])
+plot(data$FAC2_1 ~data$age)
+boxplot(data$FAC2_1~data$age)
+lm_age <- lm(data$FAC2_1 ~ data$age) #cor R is 0.22
+lm_age2 <- lm(FAC2_1 ~ age,subset(data,data$age >0)) # corr R is 0.411
+summary(lm_age2)
+sqrt(0.1696)
+#lm_Ftype3 <- lm(FAC2_1 ~ F_type3,data)
+boxplot(data$FAC2_1 ~ data$BURNT) #no relation with burnt?
+boxplot(data$FAC1_1 ~ data$BURNT) #no relation with burnt?
+
+#summary(lm_Ftype3)
+
+r_PC2 <- rasterize(data,LSTA1_change,"FAC2_1")
+r_PC2 <- mask(r_PC2,mask=LSTA1_change)
+
+r_age <- rasterize(data,LSTA1_change,"age")
+r_age <- mask(r_age,mask=LSTA1_change)
+
+#plot(r_PC2,col=temp.colors2,xlab="",ylab="")
+#plot(r_PC2,col=temp.colors(25))
+#title("PC2 scores map")
+
+temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+temp.colors2 <- matlab.like(25)
+
+res_pix <- 600
+#res_pix<-960
+col_mfrow<-2
+row_mfrow<-1
+png(filename=paste("Figure9_paper2_PC2_component_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+par(mfrow=c(1,2))
+
+plot(r_age,col=temp.colors2,axes=FALSE,cex=3,legend.shrink=0.9,legend.width=1.2)
+plot(mask_sp,add=T)
+title("(a) Age of burned scars",cex.main=1.5)
+
+plot(r_PC2,col=temp.colors2,axes=FALSE,cex=3,legend.shrink=0.9,legend.width=1.2)
+plot(mask_sp,add=T)
+title("(b) PC2 scores",cex.main=1.5)
+#axes=FALSE to suppress the coordinates on plot
+#legend.with is set to increase the  width of the color palette
+
+#legend("topright",legend=cat_names,title="Ecoregions",
+#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
+#legend("topleft",legend=c("MTBS fire"),
+#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+#       cex=2.1, lwd(2.5),
+#       lty=c(1), pch=c(-1),col=c("black"),bty="n")
+
+#scale_position<-c(450000, 600000)
+#arrow_position<-c(900000, 600000)
+
+#label_scalebar<-c("0","125","250")
+#scalebar(d=250000, xy=scale_position, type = 'bar', 
+#         divs=3,label=label_scalebar,below="kilometers",
+#         cex=3)
+#this work on non sp plot too
+#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+
+dev.off()
+
+######################################
+#### Now Figure 10
 #Figure 9. Average trends for all change and no-change areas (burned and unburned pixels) 
 #for the four variables that contribute the most to PC1: Note that with the exception of NDVI_A0, all Theil Sen slope increase in values in burned areas compared to unburned areas.
 
@@ -638,7 +773,7 @@ row_mfrow<- 2
 m <- rbind(c(1, 2),c(3,4))
 print(m)
 
-png(filename=paste("Figure9_paper2_mean_STA_var_",out_prefix,".png",sep=""),
+png(filename=paste("Figure10_paper2_mean_STA_var_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
@@ -741,132 +876,13 @@ legend("topleft",legend=c("Y = 0.430  + 0.155X","p<0.001"),
 
 dev.off()
 
+
+##############################
 ##Supplementary material
 
 #boxplot(LST_A1~BURNT,data)
 #boxplot(LST_A1~BURNT,data)
 
-####################################
-#### Add new figure: scores for fire and no fire areas...
-
-data$age <- (2001 - data$Fire_year)*-1  
-unique(data$age)
-data$age[data$age == -2001] <- -1 
-unique(data$age)
-
-test <-aggregate(data$FAC2_1~data$age,FUN=mean)
-cor(test[1],test[2])
-plot(data$FAC2_1 ~data$age)
-boxplot(data$FAC2_1~data$age)
-lm_age <- lm(data$FAC2_1 ~ data$age) #cor R is 0.22
-lm_age2 <- lm(FAC2_1 ~ age,subset(data,data$age >0)) # corr R is 0.411
-summary(lm_age2)
-sqrt(0.1696)
-#lm_Ftype3 <- lm(FAC2_1 ~ F_type3,data)
-boxplot(data$FAC2_1 ~ data$BURNT) #no relation with burnt?
-boxplot(data$FAC1_1 ~ data$BURNT) #no relation with burnt?
-
-#summary(lm_Ftype3)
-
-LSTA1_change<-raster(file.path(path,"A_avg_seg_change_Alaska__LST_A1_c_500_01222013b_multicomp_1.rst"))
-coordinates(data) <- c("x_AK83","y_AK83")
-proj4string(data) <- proj_ALB83
-
-infile_mask <- "mask_Alaska_11112014.shp"
-mask_sp <-readOGR(dsn=path,sub(".shp","",infile_mask))
-proj4string(mask_sp) <- proj_ALB83
-
-#Create raster image for PC components and mask them
-r_PC1 <- rasterize(data,LSTA1_change,"FAC1_1")
-r_PC1 <- mask(r_PC1,mask=LSTA1_change)
-r_PC2 <- rasterize(data,LSTA1_change,"FAC2_1")
-r_PC2 <- mask(r_PC2,mask=LSTA1_change)
-
-r_age <- rasterize(data,LSTA1_change,"age")
-r_age <- mask(r_age,mask=LSTA1_change)
-r_dNBR <- rasterize(data,LSTA1_change,"dNBR_mean")
-r_dNBR <- mask(r_dNBR,mask=LSTA1_change)
-
-temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-temp.colors2 <- matlab.like(25)
-plot(r_PC1,col=temp.colors(25))
-plot(mask_sp,add=T)
-
-plot(r_PC2,col=temp.colors2,xlab="",ylab="")
-plot(r_PC2,col=temp.colors(25))
-#title("PC2 scores map")
-
-res_pix<-960
-col_mfrow<-2
-row_mfrow<-1
-png(filename=paste("Figure10_paper2_PC1_component_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(1,2))
-
-plot(r_PC1,col=temp.colors2,,axes="FALSE",cex=3)
-plot(mask_sp,add=T)
-title("(a) PC1 scores",cex=3)
-plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3)
-plot(mask_sp,add=T)
-title("(b) Fire severity (dNBR)",cex=3)
-            
-#legend("topright",legend=cat_names,title="Ecoregions",
-#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
-#legend("topleft",legend=c("MTBS fire"),
-#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
-#       cex=2.1, lwd(2.5),
-#       lty=c(1), pch=c(-1),col=c("black"),bty="n")
-
-#scale_position<-c(450000, 600000)
-#arrow_position<-c(900000, 600000)
-
-#label_scalebar<-c("0","125","250")
-#scalebar(d=250000, xy=scale_position, type = 'bar', 
-#         divs=3,label=label_scalebar,below="kilometers",
-#         cex=3)
-#this work on non sp plot too
-#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-
-dev.off()
-
-
-### Now PC2
-
-res_pix<-960
-col_mfrow<-2
-row_mfrow<-1
-png(filename=paste("Figure10_paper2_PC2_component_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(1,2))
-
-plot(r_PC2,col=temp.colors2)
-plot(mask_sp,add=T)
-title("(a) PC2 scores",cex=3)
-
-plot(r_age,col=temp.colors2)
-plot(mask_sp,add=T)
-title("(b) Age of burned scars",cex=3)
-
-#legend("topright",legend=cat_names,title="Ecoregions",
-#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
-#legend("topleft",legend=c("MTBS fire"),
-#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
-#       cex=2.1, lwd(2.5),
-#       lty=c(1), pch=c(-1),col=c("black"),bty="n")
-
-#scale_position<-c(450000, 600000)
-#arrow_position<-c(900000, 600000)
-
-#label_scalebar<-c("0","125","250")
-#scalebar(d=250000, xy=scale_position, type = 'bar', 
-#         divs=3,label=label_scalebar,below="kilometers",
-#         cex=3)
-#this work on non sp plot too
-#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
-
-dev.off()
 
 ####### End of script ########
 
