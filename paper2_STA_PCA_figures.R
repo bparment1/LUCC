@@ -1,27 +1,27 @@
-#################################    PCA - STA    #######################################
-###########################  multi comparison tests  #############################################
+#################################    PCA - STA  METHOD  #######################################
+########################### CHARACTERIZATION OF LAND CHANGE  #############################################
 #This script analyzes  PCA-STA output from dissertation paper 2 from Benoit Parmentier.
-#The PCA was carried out on a subset of 9 STA trends  images on burnt-unburnt areas.
+#The PCA was carried out on a subset of 9 STA trends  images on burnt-unburnt areas selected previously.
 #Figures are generated for the paper submitted.
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 05/08/2012 
-#DATE MODIFIED: 11/19/2014
+#DATE MODIFIED: 11/27/2014
 #
 #PROJECT: Land transitions from Remote Sensing: Dissertation paper 2 (Benoit Parmentier)
 ##################################################################################################
 #
-###Loading r library and packages                                                      # loading the raster package
+###Loading r library and packages
 
-library(raster)                                                                        # loading the raster package
-library(gtools)                                                                        # loading ...
-library(sp)
-library(gplots)
-library(rgdal)
-library(RColorBrewer)
-library(gdata)
-library(plotrix)
-library(rasterVis)
-library(colorRamps) #contains matlab.like palette
+library(raster)                             # loading the raster package
+library(gtools)                             # loading ...
+library(sp)                                 # spatial objects in R
+library(gplots)                             #
+library(rgdal)                              # gdal driver for R
+library(RColorBrewer)                       # palettes
+library(gdata)                              #
+library(plotrix)                            #
+library(rasterVis)                          #
+library(colorRamps)                         # contains matlab.like palette
 
 ### Functions  used in the script
 
@@ -49,7 +49,7 @@ infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 #infile1<-'ID_all_polygons_12232011_PCA_03182012c.xlsx'
 path<-'/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012' #input path
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
-out_prefix <-"_paper_sta_pca_11192014_"
+out_prefix <-"_paper_sta_pca_11252014_"
 
 proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
@@ -84,6 +84,10 @@ data$DOY<-date2$yday #This gives the DOY (day of year) any day of year above 160
 
 data$dNBR_mean_NA<-data$dNBR_mean   #Creating a new variable dNBR with NA set for all values below -600
 data$dNBR_mean_NA[data$dNBR_mean_NA< -600]<-NA   #This assign NA to all values below -600
+data$dNBR_max_NA<-data$dNBR_max   #Creating a new variable dNBR with NA set for all values below -600
+data$dNBR_max_NA[data$dNBR_max_NA< -600]<-NA   #This assign NA to all values below -600
+data$rdNBR_max_NA<-data$rdNBR_max   #Creating a new variable dNBR with NA set for all values below -600
+data$rdNBR_max_NA[data$rdNBR_max_NA< -600]<-NA   #This assign NA to all values below -600
 
 ### Adding variables for ANALYSIS OF SEVERITY: Generating categorical varriable size of fire and date of ignition
 
@@ -139,7 +143,10 @@ Pol_area<-tapply(data_BURNT$area_ha,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_logarea<-log(Pol_area)
 Pol_PC1<-tapply(data_BURNT$FAC1_1,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_PC2<-tapply(data_BURNT$FAC2_1,data_BURNT$ID_POL, mean, na.rm=TRUE)
-Pol_dNBR<-tapply(data_BURNT$dNBR_mean,data_BURNT$ID_POL, mean, na.rm=TRUE)
+#Pol_dNBR<-tapply(data_BURNT$dNBR_mean,data_BURNT$ID_POL, mean, na.rm=TRUE)
+Pol_dNBR<-tapply(data_BURNT$dNBR_max,data_BURNT$ID_POL, mean, na.rm=TRUE)
+Pol_dNBR<-tapply(data_BURNT$dNBR_max,data_BURNT$ID_POL, mean, na.rm=TRUE)
+
 Pol_DOY<-tapply(data_BURNT$DOY,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_Severity<-tapply(data_BURNT$Severity,data_BURNT$ID_POL, mean, na.rm=TRUE)
 Pol_Severity<-tapply(data_BURNT$Severity,data_BURNT$ID_POL, mean, na.rm=TRUE)
@@ -174,7 +181,7 @@ lm17<-lm(Pol_PC1~Severity3,data=data_pol)
 plot(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600)) #Showing the relationship
 lm13<-lm(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600)) #Showing the relationship
 summary(lm13)
-sqrt(0.147) #0.383
+sqrt(0.161) #0.383
 
 lm14<-lm(Pol_PC1~Pol_Ft7_prop)
 lm7<-lm(Pol_area~Pol_PC1)
@@ -370,22 +377,61 @@ dev.off()
 ##### Figure 4: dNBR_mean and PC1 relationship as scatter plot
 
 #Done outside R
-lm5 <- lm(FAC1_1~dNBR_mean_NA,data) #
+lm5 <- lm(FAC1_1~dNBR_max_NA,data) #
 #lm5 <- lm(FAC1_1~dNBR_mean,data) # This gives better results
+lm5 <- lm(FAC1_1~rdNBR_max_NA,data) #
 
-#summary(lm5)
-sqrt(0.2506)
+summary(lm5)
+sqrt(0.2669) #0.516
 
-res_pix<-480*1.5
-col_mfrow<- 1
-row_mfrow<- 1
+res_pix<-480*1.3
+col_mfrow <- 2
+row_mfrow <- 1
+m <- rbind(c(col_mfrow,row_mfrow))
+#res_pix<-480*1.3
+#col_mfrow<- 1
+#row_mfrow<- 1
+#m <- rbind(c(1, 1))
 
-png(filename=paste("Figure4_paper2_dNBR_PC1",out_prefix,".png",sep=""),
+png(filename=paste("Figure4_PCA_STA_dNBR_PC1",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
 
-plot(FAC1_1~dNBR_mean_NA,pch=20,data)
+#plot(FAC1_1~dNBR_mean_NA,pch=20,data)
+#plot(FAC1_1~dNBR_max,pch=20,data)
+plot(FAC1_1~rdNBR_max_NA,ylim=c(-2.5,4.5),
+     ylab="PC1 scores",xlab="burn severity (dNBR)",pch=20,data)
+abline(h = 0, v = 0, col = "black")
+
+#data$PC1_catPC1_cat
+
+####PLOT WITH STD_DEV AS  WIDTH FOR PC1
+
+#tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
+#tmp  <- cbind(data$FAC1_1,data$ChangeMKSEG)
+#means <- aggregate(dNBR_mean_NA ~ PC1_catPC1_cat, data=data,FUN=mean, na.rm=TRUE)$dNBR_mean_NA #FOR dNBR you can have it in a loop.
+#stdev <- aggregate(dNBR_mean_NA ~ PC1_catPC1_cat, data=data,FUN= sd, na.rm=TRUE)$dNBR_mean_NA #FOR dNBR you can have it in a loop.
+#means <- aggregate(dNBR_max_NA ~ PC1_catPC1_cat, data=data,FUN=mean, na.rm=TRUE)$dNBR_max_NA #FOR dNBR you can have it in a loop.
+means <- aggregate(rdNBR_max_NA ~ PC1_catPC1_cat, data=data,FUN=mean, na.rm=TRUE)$rdNBR_max_NA #FOR dNBR you can have it in a loop.
+
+stdev <- aggregate(rdNBR_max_NA ~ PC1_catPC1_cat, data=data,FUN= sd, na.rm=TRUE)$rdNBR_max_NA #FOR dNBR you can have it in a loop.
+#means <- aggregate(dNBR_max ~ PC1_catPC1_cat, data=data,FUN=mean, na.rm=TRUE)$dNBR_max #FOR dNBR you can have it in a loop.
+
+#means <- sapply(tmp, mean,na.rm=TRUE)
+#stdev <- sqrt(sapply(tmp, var,na.rm=TRUE))
+n   <- as.numeric(table(data$PC1_catPC1_cat))
+
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+#ciw<-stdev    
+plotCI(y=means, x=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2),uiw=ciw, col="black", scol="blue",
+       #labels=round(means,-3), 
+       xaxt="n", #xlim=c(1,8),
+       ylim=c(-100,500), xlab="PC1 scores categories ",ylab="burn severity (dNBR)")
+axis(side=1, at=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2), labels=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2), cex=0.7)
+lines(c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2),means)
+#legend("bottomleft",legend=c("a."),
+#       cex=1.2,bty="n")
 
 dev.off()
 
@@ -415,7 +461,7 @@ temp.colors2 <- matlab.like(25)
 res_pix <- 600
 col_mfrow<-2
 row_mfrow<-1
-png(filename=paste("Figure5_paper2_PC1_component_and_dNBR",out_prefix,".png",sep=""),
+png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(1,2))
 
@@ -683,6 +729,52 @@ dev.off()
 #Figure 8. The average PC1 score for the CHANGE variable indicates that 
 #the mean scores for PC1 increase when the number of significant changes increases. 
 
+data$Change_nb
+range(data$Change_nb)
+#range(data$ChangeMKSEG)
+plot(data$ChangeMKSEG)
+lm_change<- lm(data$FAC1_1~data$ChangeMKSEG)
+summary(lm_change)
+sqrt(0.3062) #0.553
+
+lm_change <- lm(FAC1_1~ChangeMKSEG,subset(data,BURNT==1)
+                
+summary(lm_change)
+sqrt(0.3327) #0.577
+
+#data$PC1_catPC1_cat
+res_pix<-480*1.3
+col_mfrow<- 1
+row_mfrow<- 1
+m <- rbind(c(1, 1))
+                
+png(filename=paste("Figure8_STA_PCA_mean_PC1_scores_by_nb_change",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+layout(m)
+
+####PLOT WITH STD_DEV AS  WIDTH FOR PC1
+
+#tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
+#tmp  <- cbind(data$FAC1_1,data$ChangeMKSEG)
+means <- aggregate(FAC1_1 ~ ChangeMKSEG, data=data,FUN=mean, na.rm=TRUE)$FAC1_1 #FOR dNBR you can have it in a loop.
+stdev <- aggregate(FAC1_1 ~ ChangeMKSEG, data=data,FUN= sd, na.rm=TRUE)$FAC1_1 #FOR dNBR you can have it in a loop.
+                                
+#means <- sapply(tmp, mean,na.rm=TRUE)
+#stdev <- sqrt(sapply(tmp, var,na.rm=TRUE))
+n     <- as.numeric(table(data$ChangeMKSEG))
+
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+#ciw<-stdev    
+plotCI(x=means, uiw=ciw, col="black", scol="blue",
+       #labels=round(means,-3), 
+       xaxt="n", xlim=c(1,8),ylim=c(-0.5,3.5), xlab="CHANGE (number of change)",ylab="PC1 SCORES")
+axis(side=1, at=1:8, labels=0:7, cex=0.7)
+lines(means)
+#legend("bottomleft",legend=c("a."),
+#       cex=1.2,bty="n")
+
+dev.off()
 
 ######################################
 #### Now Figure 9
@@ -702,13 +794,51 @@ cor(test[1],test[2])
 plot(data$FAC2_1 ~data$age)
 boxplot(data$FAC2_1~data$age)
 lm_age <- lm(data$FAC2_1 ~ data$age) #cor R is 0.22
-lm_age2 <- lm(FAC2_1 ~ age,subset(data,data$age >0)) # corr R is 0.411
+lm_age2 <- lm(FAC2_1 ~ age,subset(data,data$age > -1)) # corr R is 0.411
 summary(lm_age2)
-sqrt(0.1696)
+sqrt(0.1752)
 #lm_Ftype3 <- lm(FAC2_1 ~ F_type3,data)
+                
 boxplot(data$FAC2_1 ~ data$BURNT) #no relation with burnt?
 boxplot(data$FAC1_1 ~ data$BURNT) #no relation with burnt?
 
+res_pix<-480*1.3
+col_mfrow<- 1
+row_mfrow<- 1
+m <- rbind(c(1, 1))
+                
+png(filename=paste("Figure9_STA_PCA_mean_PC2_scores_by_age_burn_scars",out_prefix,".png",sep=""),
+                    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+                
+layout(m)
+                
+####PLOT WITH STD_DEV AS  WIDTH FOR PC1
+                
+#tmp   <- split(data_BURNT$FAC1_1, data_BURNT$F_t2) #This split the data into list for the 6 categories
+#tmp  <- cbind(data$FAC1_1,data$ChangeMKSEG)
+means <- aggregate(FAC2_1 ~ age, data=subset(data,data$age >-1),FUN=mean, na.rm=TRUE)$FAC2_1 #FOR dNBR you can have it in a loop.
+stdev <- aggregate(FAC2_1 ~ age, data=subset(data,data$age >-1),FUN= sd, na.rm=TRUE)$FAC2_1 #FOR dNBR you can have it in a loop.
+                
+#means <- sapply(tmp, mean,na.rm=TRUE)
+#stdev <- sqrt(sapply(tmp, var,na.rm=TRUE))
+n     <- as.numeric(table(subset(data,data$age >-1)$age))
+                
+ciw   <- qt(0.975, n) * stdev / sqrt(n)
+#ciw<-stdev    
+plotCI(x=means, uiw=ciw, col="black", scol="blue",
+          #labels=round(means,-3), 
+          xaxt="n", xlim=c(1,9),ylim=c(-1.5,2), xlab="Age",ylab="PC2 SCORES")
+axis(side=1, at=1:9, labels=0:8, cex=0.7)
+lines(means)
+#legend("bottomleft",legend=c("a."),
+#       cex=1.2,bty="n")
+                
+dev.off()
+   
+######################################
+# Now Figure 10
+#The PC2 score map.
+                
 #summary(lm_Ftype3)
 
 r_PC2 <- rasterize(data,LSTA1_change,"FAC2_1")
@@ -728,7 +858,7 @@ res_pix <- 600
 #res_pix<-960
 col_mfrow<-2
 row_mfrow<-1
-png(filename=paste("Figure9_paper2_PC2_component_",out_prefix,".png",sep=""),
+png(filename=paste("Figure10_STA_PCA_map_PC2_component_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(1,2))
 
@@ -763,7 +893,7 @@ title("(b) PC2 scores",cex.main=1.5)
 dev.off()
 
 ######################################
-#### Now Figure 10
+#### Now Figure 11
 #Figure 9. Average trends for all change and no-change areas (burned and unburned pixels) 
 #for the four variables that contribute the most to PC1: Note that with the exception of NDVI_A0, all Theil Sen slope increase in values in burned areas compared to unburned areas.
 
@@ -773,7 +903,7 @@ row_mfrow<- 2
 m <- rbind(c(1, 2),c(3,4))
 print(m)
 
-png(filename=paste("Figure10_paper2_mean_STA_var_",out_prefix,".png",sep=""),
+png(filename=paste("Figure11_paper2_mean_STA_var_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
