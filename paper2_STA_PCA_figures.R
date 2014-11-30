@@ -1,13 +1,15 @@
 #################################    PCA - STA  METHOD  #######################################
 ########################### CHARACTERIZATION OF LAND CHANGE  #############################################
 #This script analyzes  PCA-STA output from dissertation paper 2 from Benoit Parmentier.
+#The goal is to present a general method to characterize areas of change using STA and PCA.
 #The PCA was carried out on a subset of 9 STA trends  images on burnt-unburnt areas selected previously.
 #Figures are generated for the paper submitted.
+#
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 05/08/2012 
-#DATE MODIFIED: 11/27/2014
+#DATE MODIFIED: 11/30/2014
 #
-#PROJECT: Land transitions from Remote Sensing: Dissertation paper 2 (Benoit Parmentier)
+#PROJECT: Land transitions from Remote Sensing
 ##################################################################################################
 #
 ###Loading r library and packages
@@ -15,15 +17,16 @@
 library(raster)                             # loading the raster package
 library(gtools)                             # loading ...
 library(sp)                                 # spatial objects in R
-library(gplots)                             #
+library(gplots)                             # 
 library(rgdal)                              # gdal driver for R
-library(RColorBrewer)                       # palettes
-library(gdata)                              #
-library(plotrix)                            #
-library(rasterVis)                          #
+library(RColorBrewer)                       # color scheme, palettes used for plotting
+library(gdata)                              # read different format (including .xlsx)
+library(plotrix)                            # plot options and functions including plotCI
+library(rasterVis)                          # raster visualization
 library(colorRamps)                         # contains matlab.like palette
 
-### Functions  used in the script
+#################################################
+###### Functions  used in the script  ##########
 
 create_dir_fun <- function(out_dir,out_suffix){
   #if out_suffix is not null then append out_suffix string
@@ -37,19 +40,21 @@ create_dir_fun <- function(out_dir,out_suffix){
   }
   return(out_dir)
 }
+
 load_obj <- function(f){
   env <- new.env()
   nm <- load(f, env)[1]
   env[[nm]]
 }
 
-###Parameters and arguments
+#############################################
+######## Parameters and arguments  ########
 
 infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 #infile1<-'ID_all_polygons_12232011_PCA_03182012c.xlsx'
 path<-'/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012' #input path
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
-out_prefix <-"_paper_sta_pca_11252014_"
+out_prefix <-"_paper_sta_pca_11302014_"
 
 proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
@@ -67,15 +72,25 @@ if(create_out_dir_param==TRUE){
   setwd(out_dir) #use previoulsy defined directory
 }
 
-####Start of th script##
+########################################################
+##############  Start of th script  ##############
 
-temp<-read.csv(file.path(path,infile1), header=TRUE, na.strings="#NULL!") #146,426 rows, 9 STA param, PCA etc
-data_extract<-read.csv(file.path(path,infile2)) # Additional data: ID pol, slope, Aspect, Elev, land cover type
-data2<-cbind(temp,data_extract) #combining both datasets...
+#### PART 1: Read in data and screen values #####
+
+temp <- read.csv(file.path(path,infile1), header=TRUE, na.strings="#NULL!") #146,426 rows, 9 STA param, PCA etc
+data_extract <- read.csv(file.path(path,infile2)) # Additional data: ID pol, slope, Aspect, Elev, land cover type
+data2 <- cbind(temp,data_extract) #combining both datasets...
 rm(temp)
-data<-data2
+table(data2$BURNT) #72,861 (unburnt) and 73,565 (burnt)
 dim(data2) #146,426x69
-data<-subset(data2,unfilled==0) #134,781 x 69
+
+data<- data2
+data<- subset(data2,unfilled==0) #134,781 x 69
+table(data$BURNT) #66,940 (unburnt) and 67,841 (burnt)
+dim(data) #134,781 x69 so loss of about 12,000 observations
+
+#############################################################################
+#### PART 2: Add variables and perform some of the evaluation analyses #####
 
 #date<-paste(data2$year,data2$Month,data2$Day, sep="")
 date<-ISOdate(data$year,data$Month,data$Day) #add date
@@ -102,7 +117,7 @@ data$Severity2[DOY>=160 & area_ha>=100000] <- 2
 data$Severity2[DOY>=160 & area_ha>=60000 & area_ha<100000] <- 1
 data$Severity2[DOY<160 | area_ha<60000] <- 0
 detach(data)
-#ghcn$Severity[is.na(ghcn$Severity)]<-0
+
 unique(data$Severity) #This will show the unique values as well as if there are Na in the col.
 x<-data$Severity
 sum(is.na(x)) # Find out the number of na in a dataset...
@@ -126,7 +141,6 @@ range(data2$Severity, na.rm=TRUE)
 index<-1:8
 
 lm6 <- lm(mean_area_PC1~index, data=data)
-#plot(mean_area)
      
 mean_Severity_PC1<-tapply(data$FAC1_1, data$Severity, mean, na.rm=TRUE)
 range(data$Severity, na.rm=TRUE)
@@ -158,7 +172,6 @@ Pol_Ft5_prop<-tapply(data_BURNT$Ft6_prop,data_BURNT$ID_POL, mean, na.rm=TRUE)
 data_pol<-as.data.frame(cbind(Pol_ID,Pol_PC1,Pol_PC2,Pol_dNBR,Pol_DOY,Pol_area,Pol_logarea,Pol_Severity,Pol_Severity,Pol_Ft7_prop,Pol_Ft6_prop,Pol_Ft5_prop))
 dim(data_pol) # 449 x12 , each row is a fire polygon and columns are attributes
 #Save in a textfile
-#write.table(data_pol, file= paste(path,"/","data_pol_",out_prefix,".txt",sep=""), sep=",")
 write.table(data_pol, file= file.path(out_dir,paste("data_pol_",out_prefix,".txt",sep="")), sep=",")
 
 #To summarize data by polygon, one can also use "aggregate for all or the selected variables!!
@@ -167,7 +180,7 @@ var_BURNT<-names(data_BURNT)
 
 plot(Pol_Ft7_prop, Pol_PC1) #is this  deciudous forest?
 
-#summarize by dNBR_max
+#summarize by rdNBR_max
 data_pol2<-aggregate(data_BURNT[,3]~ID_POL, data=data_BURNT, mean, na.rm=TRUE) #FOR dNBR you can have it in a loop.
 
 attach(data_pol)
@@ -188,7 +201,8 @@ lm7<-lm(Pol_area~Pol_PC1)
 lm8<-lm(Pol_PC1~log(Pol_area))
 lm8<-lm(Pol_PC1~Pol_dNBR, subset(data_pol, Pol_dNBR>-600))
 
-###########  PLOTTING FIGURES FOR THE PAPER ##############
+#########################################################
+#### PART 3: PLOT AND CREATE FIGURES FOR THE PAPER #####
 
 ### FIRST READ IN ECOREGION INFORMATION
 
@@ -247,9 +261,9 @@ if (file.exists(lf_eco[1])){
 #ecoreg<-raster(infile2)
 
 res_pix<-960*2
-col_mfrow<-1
+col_mfrow<-1.3
 row_mfrow<-1
-png(filename=file.path(out_dir,paste("Figure1_paper2_wwf_ecoreg_Alaska",out_prefix,".png",sep="")),
+png(filename=file.path(out_dir,paste("Figure1_STA_PCA_wwf_ecoreg_Alaska",out_prefix,".png",sep="")),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 #par(mfrow=c(1,2))
 col_eco<-rainbow(nb_col)
@@ -270,10 +284,10 @@ mtbs_pol <- readOGR(path,infile_fire)
 plot(mtbs_pol, add=TRUE,border="black")
 
 legend("topright",legend=cat_names,title="Ecoregions",
-       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
+       pt.cex=3,cex=2.9,fill=col_eco,bty="n")
 legend("topleft",legend=c("MTBS fire"),
        #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
-       cex=2.1, lwd(2.5),
+       cex=2.5, lwd(2.5),
        lty=c(1), pch=c(-1),col=c("black"),bty="n")
 
 scale_position<-c(450000, 600000)
@@ -305,11 +319,15 @@ pc_dat_eigen <- read.xls(file.path(path,in_file_xlsx), 2)  #second sheet, this f
 m <- rbind(c(1, 1), c(2, 3))
 print(m)
 
-res_pix<-480*1.5
+#res_pix<-480*1.5
+res_pix<-480*1.7
+
 col_mfrow<- 1
 row_mfrow<- 1
 
-png(filename=paste("Figure3_paper2_sree_plot",out_prefix,".png",sep=""),
+#cex.lab=1.5, cex.axis=1.5, cex.main=1.5, cex.sub=1.5
+
+png(filename=paste("Figure3_STA_PCA_scree_plot",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
@@ -317,9 +335,9 @@ layout(m)
 
 plot(pc_dat_eigen$PC,pc_dat_eigen$pct_variance,
      type="b",
-     col="blue",xlab="PRINCIPAL COMPONENT",ylab="% VARIANCE")
+     col="blue",xlab="PRINCIPAL COMPONENT",ylab="% VARIANCE",cex.lab=1.2,ex.axis=1.2)
 legend("bottomleft",legend=c("a."),
-       cex=1.2,bty="n")
+       cex=1.3,bty="n")
 
 ### Figure 3b
 ### PLOT AVERAGE MEAN PER CHANGE NO  CHANGE
@@ -338,11 +356,11 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-1.8,1.8), 
-       xlab="BURNED",ylab="PC1 SCORES",font=2)
-axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+       xlab="BURNED",ylab="PC1 SCORES",cex=1.2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex.lab=1.2)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("b."),
-       cex=1.2,bty="n")
+       cex=1.3,bty="n")
 legend("topleft",legend=c("y = -0.589 x + 1.171","p<0.001"),
        cex=1.2,bty="n")
 
@@ -352,16 +370,20 @@ legend("topleft",legend=c("y = -0.589 x + 1.171","p<0.001"),
 ### PLOT PCA LOADINGS
 
 plot(pc_dat_loadings$PC1,pc_dat_loadings$PC2,xlim=c(-1,1),ylim=c(-1,1),asp=1,
-     pch=20,col="blue",xlab="PC1",ylab="PC2",axes=FALSE)
-axis(1, at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
-axis(2, las=1,at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+     pch=20,col="blue",xlab="PC1",ylab="PC2",axes=FALSE,cex.lab=1.2)
+axis(1, at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),cex=1.4) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+axis(2, las=1,at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),cex=1.4) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+#axis(1, at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),labels=c(-1,-0.6,NA,-0.2,NA,0.2,NA,0.6,NA,1),
+#       cex=1.2) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+#axis(2, las=1,at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),cex=1.2) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+
 #axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
 box()    #This draws a box...
 legend("bottomleft",legend=c("c."),
       cex=1.2,bty="n")
 
 draw.circle(0,0,c(1.0,1),nv=200)#,border="purple",
-text(pc_dat_loadings$PC1,pc_dat_loadings$PC2,pc_dat_loadings$VAR,pos=1,cex=0.8)            
+text(pc_dat_loadings$PC1,pc_dat_loadings$PC2,pc_dat_loadings$VAR,pos=1,cex=0.9)            
 grid(2,2)
 
 #data
@@ -384,7 +406,10 @@ lm5 <- lm(FAC1_1~rdNBR_max_NA,data) #
 summary(lm5)
 sqrt(0.2669) #0.516
 
-res_pix<-480*1.3
+#res_pix<-480*1.3
+#res_pix<-480*1.1
+res_pix<-480*1
+
 col_mfrow <- 2
 row_mfrow <- 1
 m <- rbind(c(col_mfrow,row_mfrow))
@@ -396,13 +421,16 @@ m <- rbind(c(col_mfrow,row_mfrow))
 png(filename=paste("Figure4_PCA_STA_dNBR_PC1",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-layout(m)
+#layout(m)
+par(mfrow=c(1,2))
 
 #plot(FAC1_1~dNBR_mean_NA,pch=20,data)
 #plot(FAC1_1~dNBR_max,pch=20,data)
-plot(FAC1_1~rdNBR_max_NA,ylim=c(-2.5,4.5),
+plot(FAC1_1 ~ rdNBR_max_NA,ylim=c(-2.5,4.5),cex.lab = 1.5,cex.axis=1,
      ylab="PC1 scores",xlab="burn severity (dNBR)",pch=20,data)
 abline(h = 0, v = 0, col = "black")
+legend("bottomright",legend=c("a."),
+       cex=1.2,bty="n")
 
 #data$PC1_catPC1_cat
 
@@ -426,12 +454,14 @@ ciw   <- qt(0.975, n) * stdev / sqrt(n)
 #ciw<-stdev    
 plotCI(y=means, x=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2),uiw=ciw, col="black", scol="blue",
        #labels=round(means,-3), 
-       xaxt="n", #xlim=c(1,8),
-       ylim=c(-100,500), xlab="PC1 scores categories ",ylab="burn severity (dNBR)")
-axis(side=1, at=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2), labels=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2), cex=0.7)
+       xaxt="n", 
+       #xlim=c(1,8),
+       ylim=c(-100,500), xlab="PC1 scores categories ",ylab="burn severity (dNBR)",cex.lab=1.5)
+axis(side=1, at=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2), 
+     labels=c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2), cex.lab=1.2)
 lines(c(-2,-1.25,-0.75,-0.25,0.25,0.75,1.25,2),means)
-#legend("bottomleft",legend=c("a."),
-#       cex=1.2,bty="n")
+legend("bottomright",legend=c("b."),
+       cex=1.2,bty="n")
 
 dev.off()
 
@@ -458,12 +488,22 @@ temp.colors2 <- matlab.like(25)
 #plot(r_PC1,col=temp.colors(25))
 #plot(mask_sp,add=T)
 
-res_pix <- 600
-col_mfrow<-2
-row_mfrow<-1
+projection(r_dNBR) <- proj_ALB83
+projection(r_PC1) <- proj_ALB83
+data_name<-paste("r_dNBR_AK_map",sep="")
+raster_name<-paste(data_name,out_prefix,".rst", sep="")
+writeRaster(r_dNBR, filename=file.path(out_dir,raster_name),NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
+
+data_name<-paste("r_PC1_AK_map",sep="")
+raster_name<-paste(data_name,out_prefix,".rst", sep="")
+writeRaster(r_PC1, filename=file.path(out_dir,raster_name),NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
+
+res_pix <- 700
+col_mfrow<-1
+row_mfrow<-2
 png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(1,2))
+    width=col_mfrow*res_pix*1,height=row_mfrow*res_pix)
+par(mfrow=c(2,1))
 
 plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)#,legend.mar=c(3.1,4.1))  
 #Amount to shrink the size of legend relative to the full height or width of the plot.)
@@ -498,7 +538,7 @@ dev.off()
 ###################################
 ##### Figure 6: Severity and PC1
 
-#Figure 5. Relationship between PC1 scores and severity: 
+#Figure 6. Relationship between PC1 scores and severity: 
 #(a)  High severity burn areas (category 1) has a high average PC1 score of about 1 
 #(b) the average score (Pol_PC1) increases when the log of fire size (log(Pol_area)).
 
@@ -511,15 +551,14 @@ summary(lm_severity_pol)
 sqrt(0.3967) #correlation is 0.63
 
 x<- mean_Pol_Severity_PC1[1:2]
-#X11(width=55,height=45)
 
-res_pix<-480*1.3
+res_pix<-480*1
 col_mfrow<- 2
 row_mfrow<- 1
 m <- rbind(c(1, 2))
 #print(m)
 
-png(filename=paste("Figure6_paper2_burnt_severity_based_on_polygon",out_prefix,".png",sep=""),
+png(filename=paste("Figure6_STA_PCA_burnt_severity_based_on_polygon",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
@@ -536,8 +575,8 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-1.8,1.8), 
-       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",font=2)
-axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+       xlab="BOOLEAN SEVERITY",ylab="MEAN PC1 SCORES",cex.lab=1)
+axis(side=1, at=c(0,1), labels=c(0,1), cex.axis=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("a."),
        cex=1.2,bty="n")
@@ -550,7 +589,7 @@ legend("bottomleft",legend=c("a."),
 ## Plot ofr log of area...
 #plot(Pol_logarea, Pol_PC1)
 plot(Pol_logarea, Pol_PC1, xlim=c(4, 13), ylim=c(-2,2), type="p", axes=FALSE,
-     col="black", cex=0.7,xlab="FIRE SIZE (LOG OF AREA IN HA)", ylab="MEAN PC1 SCORES")
+     col="black", cex=1,xlab="FIRE SIZE (LOG OF AREA IN HA)", ylab="MEAN PC1 SCORES")
 #points(c(0,1), x, pch=1) #Note that cex is used for hte size of the symbol to be used.
 axis(1) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
 axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
@@ -674,13 +713,13 @@ data_BURNT$F_type_f<-factor(data_BURNT$F_t2, labels=x_cat, exclude="NULL")
 means<- mean_PC1_t2
 stdev<-sd_PC1_t2
 
-res_pix<-480*1.3
+res_pix<-480*1
 col_mfrow<- 2
 row_mfrow<- 1
 m <- rbind(c(1, 2))
 #print(m)
 
-png(filename=paste("Figure7_paper2_mean_PC1_scores",out_prefix,".png",sep=""),
+png(filename=paste("Figure7_STA_PCA_mean_PC1_scores",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
@@ -743,7 +782,9 @@ summary(lm_change)
 sqrt(0.3327) #0.577
 
 #data$PC1_catPC1_cat
-res_pix<-480*1.3
+#res_pix<-480*1.3
+res_pix<-480*1
+                
 col_mfrow<- 1
 row_mfrow<- 1
 m <- rbind(c(1, 1))
@@ -784,9 +825,11 @@ dev.off()
 coordinates(data) <- c("x_AK83","y_AK83")
 proj4string(data) <- proj_ALB83
 
-data$age <- (2001 - data$Fire_year)*-1  
+#data$age <- (2001 - data$Fire_year)*-1  
+data$age <- (data$Fire_year -2009)*-1 
+                
 unique(data$age)
-data$age[data$age == -2001] <- -1 
+data$age[data$age == 2009] <- -1 
 unique(data$age)
 
 test <-aggregate(data$FAC2_1~data$age,FUN=mean)
@@ -795,6 +838,7 @@ plot(data$FAC2_1 ~data$age)
 boxplot(data$FAC2_1~data$age)
 lm_age <- lm(data$FAC2_1 ~ data$age) #cor R is 0.22
 lm_age2 <- lm(FAC2_1 ~ age,subset(data,data$age > -1)) # corr R is 0.411
+#0.1752
 summary(lm_age2)
 sqrt(0.1752)
 #lm_Ftype3 <- lm(FAC2_1 ~ F_type3,data)
@@ -802,9 +846,11 @@ sqrt(0.1752)
 boxplot(data$FAC2_1 ~ data$BURNT) #no relation with burnt?
 boxplot(data$FAC1_1 ~ data$BURNT) #no relation with burnt?
 
-res_pix<-480*1.3
-col_mfrow<- 1
-row_mfrow<- 1
+res_pix<-480*1
+#res_pix<-480*1.3
+                
+col_mfrow <- 1
+row_mfrow <- 1
 m <- rbind(c(1, 1))
                 
 png(filename=paste("Figure9_STA_PCA_mean_PC2_scores_by_age_burn_scars",out_prefix,".png",sep=""),
@@ -827,14 +873,14 @@ ciw   <- qt(0.975, n) * stdev / sqrt(n)
 #ciw<-stdev    
 plotCI(x=means, uiw=ciw, col="black", scol="blue",
           #labels=round(means,-3), 
-          xaxt="n", xlim=c(1,9),ylim=c(-1.5,2), xlab="Age",ylab="PC2 SCORES")
+          xaxt="n", xlim=c(1,9),ylim=c(-1.5,2), xlab="AGE OF BURN SCARS",ylab="PC2 SCORES")
 axis(side=1, at=1:9, labels=0:8, cex=0.7)
 lines(means)
 #legend("bottomleft",legend=c("a."),
 #       cex=1.2,bty="n")
                 
 dev.off()
-   
+
 ######################################
 # Now Figure 10
 #The PC2 score map.
@@ -854,17 +900,17 @@ r_age <- mask(r_age,mask=LSTA1_change)
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 temp.colors2 <- matlab.like(25)
 
-res_pix <- 600
+res_pix <- 700
 #res_pix<-960
-col_mfrow<-2
-row_mfrow<-1
+col_mfrow <- 1
+row_mfrow <- 2
 png(filename=paste("Figure10_STA_PCA_map_PC2_component_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(1,2))
+par(mfrow=c(2,1))
 
 plot(r_age,col=temp.colors2,axes=FALSE,cex=3,legend.shrink=0.9,legend.width=1.2)
 plot(mask_sp,add=T)
-title("(a) Age of burned scars",cex.main=1.5)
+title("(a) Age of burn scars",cex.main=1.5)
 
 plot(r_PC2,col=temp.colors2,axes=FALSE,cex=3,legend.shrink=0.9,legend.width=1.2)
 plot(mask_sp,add=T)
@@ -894,21 +940,21 @@ dev.off()
 
 ######################################
 #### Now Figure 11
-#Figure 9. Average trends for all change and no-change areas (burned and unburned pixels) 
+#Figure 11. Average trends for all change and no-change areas (burned and unburned pixels) 
 #for the four variables that contribute the most to PC1: Note that with the exception of NDVI_A0, all Theil Sen slope increase in values in burned areas compared to unburned areas.
 
-res_pix<-480*1.1
+res_pix <- 480*1
 col_mfrow<- 2
 row_mfrow<- 2
 m <- rbind(c(1, 2),c(3,4))
 print(m)
 
-png(filename=paste("Figure11_paper2_mean_STA_var_",out_prefix,".png",sep=""),
+png(filename=paste("Figure11_STA_PCA_mean_STA_var_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 layout(m)
 
-##Figure 9a: NDVI_A0
+##Figure 11a: NDVI_A0
 
 mean_val <- tapply(data$NDVI_A0,data$BURNT, mean, na.rm=TRUE)
 sd_val <- tapply(data$NDVI_A0,data$BURNT, sd, na.rm=TRUE)  
@@ -924,15 +970,15 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-0.02,0.01), 
-       xlab="BURNED",ylab="MEAN NDVI_A0",font=2)
-axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+       xlab="BURNED",ylab="MEAN NDVI_A0")#,font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("a."),
        cex=1.2,bty="n")
 legend("topleft",legend=c("Y = 0.001 - 0.008X","p<0.001"),
        cex=1.2,bty="n")
 
-##Figure 9b: ALB_A0
+##Figure 11b: ALB_A0
 
 mean_val <- tapply(data$ALB_A0,data$BURNT, mean, na.rm=TRUE)
 sd_val <- tapply(data$ALB_A0,data$BURNT, sd, na.rm=TRUE)  
@@ -948,15 +994,15 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-0.005,0.010), 
-       xlab="BOOLEAN SEVERITY",ylab="MEAN ALB_A0",font=2)
-axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+       xlab="BOOLEAN SEVERITY",ylab="MEAN ALB_A0")#,font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("b."),
        cex=1.2,bty="n")
 legend("topleft",legend=c("Y = -0.0003 + 0.04X","p<0.001"),
        cex=1.2,bty="n")
 
-##Figure 9c: ALB_A1
+##Figure 11c: ALB_A1
 
 mean_val <- tapply(data$ALB_A1,data$BURNT, mean, na.rm=TRUE)
 sd_val <- tapply(data$ALB_A1,data$BURNT, sd, na.rm=TRUE)  
@@ -972,15 +1018,15 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-0.005,0.010), 
-       xlab="BOOLEAN SEVERITY",ylab="MEAN ALB_A1",font=2)
-axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+       xlab="BOOLEAN SEVERITY",ylab="MEAN ALB_A1")#,font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("c."),
        cex=1.2,bty="n")
 legend("topleft",legend=c("Y = 0.0005 + 0.04X","p<0.001"),
        cex=1.2,bty="n")
 
-##Figure 9d: LST_A1
+##Figure 11d: LST_A1
 
 mean_val <- tapply(data$LST_A1,data$BURNT, mean, na.rm=TRUE)
 sd_val <- tapply(data$LST_A1,data$BURNT, sd, na.rm=TRUE)  
@@ -996,8 +1042,8 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(0.25,0.9), 
-       xlab="BOOLEAN SEVERITY",ylab="LST_A1",font=2)
-axis(side=1, at=c(0,1), labels=c(0,1), cex=0.7)
+       xlab="BOOLEAN SEVERITY",ylab="LST_A1")#,font=2)
+axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("a."),
        cex=1.2,bty="n")
@@ -1006,26 +1052,60 @@ legend("topleft",legend=c("Y = 0.430  + 0.155X","p<0.001"),
 
 dev.off()
 
+########################################           
+#### Graphic Abstract for RS journal ###
 
+### PLOT PCA LOADINGS
+
+m <- rbind(c(1, 1)) #, c(2, 3))
+print(m)
+                
+res_pix <- 480*1.5
+#res_pix <- 550
+                
+col_mfrow <- 1
+row_mfrow <- 1
+                
+#cex.lab=1.5, cex.axis=1.5, cex.main=1.5, cex.sub=1.5
+                
+png(filename=paste("Figure0_STA_PCA_laodings_graphical_abstracts",out_prefix,".png",sep=""),
+                    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+                
+layout(m)
+#par(mar = c(3, 3, 0, 0))
+                
+plot(pc_dat_loadings$PC1,pc_dat_loadings$PC2,xlim=c(-1,1),ylim=c(-1,1),asp=1,
+     pch=20,col="blue",xlab="PC1",ylab="PC2",axes=FALSE,cex.lab=1.2)
+axis(1, at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),cex=1.2) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+     axis(2, las=1,at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),cex=1.2) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+     #axis(1, at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),labels=c(-1,-0.6,NA,-0.2,NA,0.2,NA,0.6,NA,1),
+     #       cex=1.2) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+     # axis(2, las=1,at=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1),cex=1.2) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+                
+     #axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+box()    #This draws a box...
+title("PC loadings patterns related to biophysical changes")
+#legend("bottomleft",legend=c("c."),
+#      cex=1.2,bty="n")
+                
+draw.circle(0,0,c(1.0,1),nv=200)#,border="purple",
+text(pc_dat_loadings$PC1,pc_dat_loadings$PC2,pc_dat_loadings$VAR,pos=1,cex=1)            
+grid(2,2)
+                
+#data
+#plot(c(0,1), x, xlim=c(-.2, 1.2), ylim=c(-.4,1), type="l", axes=FALSE,
+#     col="red", xlab="BURNED", ylab="MEAN PC1 SCORES")
+#points(c(0,1), x, pch=1)
+#axis(1, at=c(0,1)) # "1' for side=below, the axis is drawned  on the right at location 0 and 1
+#axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+#box()    #This draws a box...
+dev.off()
+                
 ##############################
 ##Supplementary material
 
 #boxplot(LST_A1~BURNT,data)
 #boxplot(LST_A1~BURNT,data)
 
+#################### End of script ##################
 
-####### End of script ########
-
-#Matlab.like scatterplot
-#x <- 1:10
-#y <- x + rnorm(10, 0, 2)
-#plot(x,y) #R like scatterplot
-
-#Now create matlab like scatterplot
-#plot(x, y, pch=16, axes=F)
-#axis(1, lwd=0, lwd.tick=1, tck=0.02)
-#axis(2, lwd=0, lwd.tick=1, tck=0.02)
-# Remember to suppress axis labels on the top and right axes
-#axis(3, lwd=0, lwd.tick=1, tck=0.02, lab=F)
-#axis(4, lwd=0, lwd.tick=1, tck=0.02, lab=F)
-#box()
