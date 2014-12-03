@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 05/08/2012 
-#DATE MODIFIED: 11/30/2014
+#DATE MODIFIED: 12/03/2014
 #
 #PROJECT: Land transitions from Remote Sensing
 ##################################################################################################
@@ -54,7 +54,7 @@ infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 #infile1<-'ID_all_polygons_12232011_PCA_03182012c.xlsx'
 path<-'/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012' #input path
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
-out_prefix <-"_paper_sta_pca_11302014_"
+out_prefix <-"_paper_sta_pca_12032014_"
 
 proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
@@ -275,7 +275,10 @@ col_eco[16]<-"brown"
 col_eco[14]<-"darkgreen"
 col_eco[15]<-"yellowgreen"
 
-plot(ecoreg_rast,col=col_eco,legend=FALSE,axes="FALSE")
+#plot(ecoreg_rast,col=col_eco,legend=FALSE,axes="FALSE")
+plot(ecoreg_rast,col=col_eco,legend=FALSE,cex.axis=2.5,
+     ,axes="TRUE")#,
+     #xlab="x (meter)",ylab="y (meter",cex.lab=2.9)
 
 
 infile_fire<-sub(".shp","","MTBS_AK_2001_2009_IDR_ID.shp")             #Removing the extension from file.
@@ -289,6 +292,11 @@ legend("topleft",legend=c("MTBS fire"),
        #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
        cex=2.5, lwd(2.5),
        lty=c(1), pch=c(-1),col=c("black"),bty="n")
+#legend("bottomright",title=c("Albers Equal Area"),cex=2.9,
+#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+#       col=c("black"),bty="n")
+legend("bottomright",legend=c("Albers Equal Area"),
+       cex=2.9,bty="n")
 
 scale_position<-c(450000, 600000)
 arrow_position<-c(900000, 600000)
@@ -498,22 +506,68 @@ data_name<-paste("r_PC1_AK_map",sep="")
 raster_name<-paste(data_name,out_prefix,".rst", sep="")
 writeRaster(r_PC1, filename=file.path(out_dir,raster_name),NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
 
-res_pix <- 700
+res_pix <- 800
 col_mfrow<-1
 row_mfrow<-2
 png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix*1,height=row_mfrow*res_pix)
+png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix*1,height=row_mfrow*res_pix*0.85)
+
 par(mfrow=c(2,1))
 
-plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)#,legend.mar=c(3.1,4.1))  
+#plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)#,legend.mar=c(3.1,4.1))  
+#plot(r_dNBR,col=temp.colors2,cex.axis=1.2,cex=3,xlab="x (meter)",ylab="y (meter)",
+#     legend.shrink=0.9,legend.width=0.9,#)#,legend.mar=c(3.1,4.1))  
+#     legend.lab="dNBR") #,cex.legend.lab)
+#plot(r_dNBR,col=temp.colors2,cex.axis=1.2,cex=3,xlab="x (meter)",ylab="y (meter)",
+#     legend.shrink=0.9,legend.width=0.9,
+#     legend.args=list(text='dNBR', side=4, font=2, line=2.5, cex=1))
+plot(r_dNBR,col=temp.colors2,cex.axis=1.2,cex=3,
+     cex.lab=1.2,xlab="x (meter)",ylab="y (meter)",
+     legend.shrink=0.9,legend.width=0.9,
+     legend.args=list(text='dNBR', side=4, line=2.5, cex=1.2))
+#http://stackoverflow.com/questions/9436947/legend-properties-when-legend-only-t-raster-package
+
+scale_position<-c(450000, 600000)
+arrow_position<-c(900000, 600000)
+
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=1.2)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+
 #Amount to shrink the size of legend relative to the full height or width of the plot.)
 #legend.with is set to increase the  width of the color palette
-plot(mask_sp,add=T)
+plot(mask_sp,add=T,lwd=0.6)
 title("(a) Fire severity (dNBR)",cex.main=1.5)
+legend("bottomright",legend=c("Albers Equal Area"),
+       cex=0.95,bty="n")
 
-plot(r_PC1,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)
-plot(mask_sp,add=T)
+plot(r_PC1,col=temp.colors2,cex.axis=1.2,cex=3,xlab="x (meter)",ylab="y (meter)",
+     legend.shrink=0.9,cex.lab=1.2,legend.width=0.9,
+     #legend.lab="PC1") #,cex.legend.lab)
+     legend.args=list(text='PC1', side=4, line=2.5, cex=1.2))
+
+plot(mask_sp,add=T,lwd=0.6)
 title("(b) PC1 scores",cex.main=1.5)
+#legend("bottomright",title=c("Albers Equal Area"),cex=0.95,
+#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+#       col=c("black"),bty="n")
+
+scale_position<-c(450000, 600000)
+arrow_position<-c(900000, 600000)
+
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+         divs=3,label=label_scalebar,below="kilometers",
+         cex=1.2)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
 
 #legend("topright",legend=cat_names,title="Ecoregions",
 #       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
@@ -522,16 +576,11 @@ title("(b) PC1 scores",cex.main=1.5)
 #       cex=2.1, lwd(2.5),
 #       lty=c(1), pch=c(-1),col=c("black"),bty="n")
 
-#scale_position<-c(450000, 600000)
-#arrow_position<-c(900000, 600000)
-
-#label_scalebar<-c("0","125","250")
-#scalebar(d=250000, xy=scale_position, type = 'bar', 
-#         divs=3,label=label_scalebar,below="kilometers",
-#         cex=3)
-#this work on non sp plot too
-#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+#legend("bottomright",title=c("Albers Equal Area"),cex=0.95,
+#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
+#       col=c("black"),bty="n")
+legend("bottomright",legend=c("Albers Equal Area"),
+       cex=0.95,bty="n")
 
 dev.off()
 
@@ -891,8 +940,12 @@ r_PC2 <- rasterize(data,LSTA1_change,"FAC2_1")
 r_PC2 <- mask(r_PC2,mask=LSTA1_change)
 
 r_age <- rasterize(data,LSTA1_change,"age")
+r_age_mask <- r_age > -1
+r_age_mask[r_age_mask==0] <- NA
+                
 r_age <- mask(r_age,mask=LSTA1_change)
-
+r_age <- mask(r_age,mask=r_age_mask)
+                
 #plot(r_PC2,col=temp.colors2,xlab="",ylab="")
 #plot(r_PC2,col=temp.colors(25))
 #title("PC2 scores map")
@@ -900,41 +953,61 @@ r_age <- mask(r_age,mask=LSTA1_change)
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 temp.colors2 <- matlab.like(25)
 
-res_pix <- 700
+res_pix <- 800
 #res_pix<-960
 col_mfrow <- 1
 row_mfrow <- 2
+#png(filename=paste("Figure10_STA_PCA_map_PC2_component_",out_prefix,".png",sep=""),
+#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 png(filename=paste("Figure10_STA_PCA_map_PC2_component_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(2,1))
+                    width=col_mfrow*res_pix,height=row_mfrow*res_pix*0.85)
+                
+                par(mfrow=c(2,1))
 
-plot(r_age,col=temp.colors2,axes=FALSE,cex=3,legend.shrink=0.9,legend.width=1.2)
-plot(mask_sp,add=T)
+plot(r_age,col=temp.colors2,axes=TRUE,,cex.axis=1.2,cex=3,
+     cex.lab=1.2,xlab="x (meter)",ylab="y (meter)",
+     legend.shrink=0.9,legend.width=1.2,
+     legend.args=list(text='AGE', side=4, line=2.5, cex=1.2))
+
+plot(mask_sp,add=T,lwd=0.6)
 title("(a) Age of burn scars",cex.main=1.5)
+scale_position<-c(450000, 600000)
+arrow_position<-c(900000, 600000)
+                
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+                   divs=3,label=label_scalebar,below="kilometers",
+                   cex=1.2)
+#this work on non sp plot too
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                      scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
 
-plot(r_PC2,col=temp.colors2,axes=FALSE,cex=3,legend.shrink=0.9,legend.width=1.2)
-plot(mask_sp,add=T)
+legend("bottomright",legend=c("Albers Equal Area"),
+                       cex=0.95,bty="n")
+                
+                
+plot(r_PC2,col=temp.colors2,axes=TRUE,cex=3,,cex.axis=1.2,
+     cex.lab=1.2,xlab="x (meter)",ylab="y (meter)",
+     legend.shrink=0.9,legend.width=1.2,
+     legend.args=list(text='PC2', side=4, line=2.5, cex=1.2))
+
+plot(mask_sp,add=T,lwd=0.6)
 title("(b) PC2 scores",cex.main=1.5)
 #axes=FALSE to suppress the coordinates on plot
 #legend.with is set to increase the  width of the color palette
-
-#legend("topright",legend=cat_names,title="Ecoregions",
-#       pt.cex=3,cex=2.4,fill=col_eco,bty="n")
-#legend("topleft",legend=c("MTBS fire"),
-#       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
-#       cex=2.1, lwd(2.5),
-#       lty=c(1), pch=c(-1),col=c("black"),bty="n")
-
-#scale_position<-c(450000, 600000)
-#arrow_position<-c(900000, 600000)
-
-#label_scalebar<-c("0","125","250")
-#scalebar(d=250000, xy=scale_position, type = 'bar', 
-#         divs=3,label=label_scalebar,below="kilometers",
-#         cex=3)
+scale_position<-c(450000, 600000)
+arrow_position<-c(900000, 600000)
+                
+label_scalebar<-c("0","125","250")
+scalebar(d=250000, xy=scale_position, type = 'bar', 
+                   divs=3,label=label_scalebar,below="kilometers",
+                  cex=1.2)
 #this work on non sp plot too
-#SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
-#                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                        scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
+legend("bottomright",legend=c("Albers Equal Area"),
+                       cex=0.95,bty="n")
+                
 
 dev.off()
 
@@ -1109,3 +1182,20 @@ dev.off()
 
 #################### End of script ##################
 
+#Plotting raster in R
+#http://stackoverflow.com/questions/9436947/legend-properties-when-legend-only-t-raster-package
+#                 You can pass axis.args and legend.args as arguments to the legend only function call, as for image.plot in the fields package.
+#                 
+#                 For example, to specify tick positions and labels, and to reduce tick label size, the following should do the trick. It will also accept arguments such as legend.width and legend.shrink.
+#                 
+#                 require(raster)
+#                 data(volcano)
+#                 r <- raster(volcano)
+#                 plot(r, col=topo.colors(100), legend=FALSE, axes=FALSE)
+#                 r.range <- c(minValue(r), maxValue(r))
+#                 plot(r, legend.only=TRUE, col=topo.colors(100),
+#                      legend.width=1, legend.shrink=0.75,
+#                      axis.args=list(at=seq(r.range[1], r.range[2], 25),
+#                                     labels=seq(r.range[1], r.range[2], 25), 
+#                                     cex.axis=0.6),
+#                      legend.args=list(text='Elevation (m)', side=4, font=2, line=2.5, cex=0.8))
