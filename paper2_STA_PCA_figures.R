@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 05/08/2012 
-#DATE MODIFIED: 12/03/2014
+#DATE MODIFIED: 12/11/2014
 #
 #PROJECT: Land transitions from Remote Sensing
 ##################################################################################################
@@ -54,7 +54,7 @@ infile1<-'ID_all_polygons_12232011_PCA_03182012c.csv'
 #infile1<-'ID_all_polygons_12232011_PCA_03182012c.xlsx'
 path<-'/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012' #input path
 infile2<-'ID_all_polygons_12232011_PCA_04082012c.csv'
-out_prefix <-"_paper_sta_pca_12032014_"
+out_prefix <-"_paper_sta_pca_12112014_"
 
 proj_ALB83<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
 
@@ -101,6 +101,7 @@ data$dNBR_mean_NA<-data$dNBR_mean   #Creating a new variable dNBR with NA set fo
 data$dNBR_mean_NA[data$dNBR_mean_NA< -600]<-NA   #This assign NA to all values below -600
 data$dNBR_max_NA<-data$dNBR_max   #Creating a new variable dNBR with NA set for all values below -600
 data$dNBR_max_NA[data$dNBR_max_NA< -600]<-NA   #This assign NA to all values below -600
+#This is the correct variable used in previous analyses!
 data$rdNBR_max_NA<-data$rdNBR_max   #Creating a new variable dNBR with NA set for all values below -600
 data$rdNBR_max_NA[data$rdNBR_max_NA< -600]<-NA   #This assign NA to all values below -600
 
@@ -407,8 +408,7 @@ dev.off()
 ##### Figure 4: dNBR_mean and PC1 relationship as scatter plot
 
 #Done outside R
-lm5 <- lm(FAC1_1~dNBR_max_NA,data) #
-#lm5 <- lm(FAC1_1~dNBR_mean,data) # This gives better results
+lm5 <- lm(FAC1_1~dNBR_max_NA,data) #this is the correct dNBR variable
 lm5 <- lm(FAC1_1~rdNBR_max_NA,data) #
 
 summary(lm5)
@@ -506,15 +506,19 @@ data_name<-paste("r_PC1_AK_map",sep="")
 raster_name<-paste(data_name,out_prefix,".rst", sep="")
 writeRaster(r_PC1, filename=file.path(out_dir,raster_name),NAflag=-999,overwrite=TRUE)  #Writing the data in a raster file format...
 
-res_pix <- 800
+#res_pix <- 800
+#res_pix <- 800*1.5
+res_pix <- 800*1.17
+
 col_mfrow<-1
 row_mfrow<-2
-png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix*1,height=row_mfrow*res_pix)
+#png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
+#    width=col_mfrow*res_pix*1,height=row_mfrow*res_pix)
 png(filename=paste("Figure5_STA_PCA_map_PC1_component_and_dNBR",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix*1,height=row_mfrow*res_pix*0.85)
 
 par(mfrow=c(2,1))
+#par(mar = c(5,5,2,5))
 
 #plot(r_dNBR,col=temp.colors2,,axes="FALSE",cex=3,legend.shrink=0.9,legend.width=1.2)#,legend.mar=c(3.1,4.1))  
 #plot(r_dNBR,col=temp.colors2,cex.axis=1.2,cex=3,xlab="x (meter)",ylab="y (meter)",
@@ -523,10 +527,16 @@ par(mfrow=c(2,1))
 #plot(r_dNBR,col=temp.colors2,cex.axis=1.2,cex=3,xlab="x (meter)",ylab="y (meter)",
 #     legend.shrink=0.9,legend.width=0.9,
 #     legend.args=list(text='dNBR', side=4, font=2, line=2.5, cex=1))
-plot(r_dNBR,col=temp.colors2,cex.axis=1.2,cex=3,
-     cex.lab=1.2,xlab="x (meter)",ylab="y (meter)",
-     legend.shrink=0.9,legend.width=0.9,
-     legend.args=list(text='dNBR', side=4, line=2.5, cex=1.2))
+plot(r_dNBR,col=temp.colors2,cex.axis=1.5,cex=3,
+     cex.lab=1.8,xlab="x (meter)",ylab="y (meter)",
+     #legend.shrink=1.5,legend.width=0.9,
+     legend.shrink=0.8,legend.width=0.8,
+     axis.args = list(cex.axis = 1.6), #control size of legend z
+     #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
+     legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
+     #legend.args=list(text='dNBR', side=3, line=2.17, cex=1.7))
+#legend.args=list(text='dNBR', side=4, line=2, cex=2.2))
+
 #http://stackoverflow.com/questions/9436947/legend-properties-when-legend-only-t-raster-package
 
 scale_position<-c(450000, 600000)
@@ -535,7 +545,8 @@ arrow_position<-c(900000, 600000)
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=1.2)
+         cex=1.6
+         )
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
@@ -543,17 +554,25 @@ SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position,
 #Amount to shrink the size of legend relative to the full height or width of the plot.)
 #legend.with is set to increase the  width of the color palette
 plot(mask_sp,add=T,lwd=0.6)
-title("(a) Fire severity (dNBR)",cex.main=1.5)
+title("(a) Fire severity (dNBR)",cex.main=2.5)
 legend("bottomright",legend=c("Albers Equal Area"),
-       cex=0.95,bty="n")
+       cex=1.6,bty="n")
 
-plot(r_PC1,col=temp.colors2,cex.axis=1.2,cex=3,xlab="x (meter)",ylab="y (meter)",
-     legend.shrink=0.9,cex.lab=1.2,legend.width=0.9,
+plot(r_PC1,col=temp.colors2,cex.axis=1.5,cex=3,xlab="x (meter)",ylab="y (meter)",
+     legend.shrink=0.8,cex.lab=1.8,legend.width=0.8,
+     #legend.mar=ifelse(horizontal,3.1,5.2),
+     axis.args = list(cex.axis = 1.6), #control size of legend z
+     #legend.shrink=1.5,cex.lab=2.2,legend.width=0.9,
      #legend.lab="PC1") #,cex.legend.lab)
-     legend.args=list(text='PC1', side=4, line=2.5, cex=1.2))
+     #legend.args=list(text='PC1', side=4, line=2.5, cex=2.2))
+     legend.args=list(text='PC1', side=4, line=2.49, cex=1.6))
+     #legend.args=list( text="unknown units",
+     #              col="magenta", cex=1.5, side=4, line=2))
 
 plot(mask_sp,add=T,lwd=0.6)
-title("(b) PC1 scores",cex.main=1.5)
+#title("(b) PC1 scores",cex.main=1.5)
+title("(b) PC1 scores",cex.main=2.5)
+
 #legend("bottomright",title=c("Albers Equal Area"),cex=0.95,
 #       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
 #       col=c("black"),bty="n")
@@ -564,7 +583,7 @@ arrow_position<-c(900000, 600000)
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
          divs=3,label=label_scalebar,below="kilometers",
-         cex=1.2)
+         cex=1.6)
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                        scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
@@ -580,7 +599,7 @@ SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position,
 #       #pt.cex=1.4,cex=2.1,fill=c("black","red"),bty="n") 
 #       col=c("black"),bty="n")
 legend("bottomright",legend=c("Albers Equal Area"),
-       cex=0.95,bty="n")
+       cex=1.6,bty="n")
 
 dev.off()
 
@@ -601,7 +620,7 @@ sqrt(0.3967) #correlation is 0.63
 
 x<- mean_Pol_Severity_PC1[1:2]
 
-res_pix<-480*1
+res_pix<-480*1.1
 col_mfrow<- 2
 row_mfrow<- 1
 m <- rbind(c(1, 2))
@@ -762,7 +781,7 @@ data_BURNT$F_type_f<-factor(data_BURNT$F_t2, labels=x_cat, exclude="NULL")
 means<- mean_PC1_t2
 stdev<-sd_PC1_t2
 
-res_pix<-480*1
+res_pix<-480*1.1
 col_mfrow<- 2
 row_mfrow<- 1
 m <- rbind(c(1, 2))
@@ -832,7 +851,7 @@ sqrt(0.3327) #0.577
 
 #data$PC1_catPC1_cat
 #res_pix<-480*1.3
-res_pix<-480*1
+res_pix<-480*1.1
                 
 col_mfrow<- 1
 row_mfrow<- 1
@@ -895,7 +914,7 @@ sqrt(0.1752)
 boxplot(data$FAC2_1 ~ data$BURNT) #no relation with burnt?
 boxplot(data$FAC1_1 ~ data$BURNT) #no relation with burnt?
 
-res_pix<-480*1
+res_pix<-480*1.1
 #res_pix<-480*1.3
                 
 col_mfrow <- 1
@@ -953,7 +972,9 @@ r_age <- mask(r_age,mask=r_age_mask)
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 temp.colors2 <- matlab.like(25)
 
-res_pix <- 800
+#res_pix <- 800
+res_pix <- 800*1.17                
+
 #res_pix<-960
 col_mfrow <- 1
 row_mfrow <- 2
@@ -962,37 +983,39 @@ row_mfrow <- 2
 png(filename=paste("Figure10_STA_PCA_map_PC2_component_",out_prefix,".png",sep=""),
                     width=col_mfrow*res_pix,height=row_mfrow*res_pix*0.85)
                 
-                par(mfrow=c(2,1))
+par(mfrow=c(2,1))
 
-plot(r_age,col=temp.colors2,axes=TRUE,,cex.axis=1.2,cex=3,
-     cex.lab=1.2,xlab="x (meter)",ylab="y (meter)",
-     legend.shrink=0.9,legend.width=1.2,
-     legend.args=list(text='AGE', side=4, line=2.5, cex=1.2))
-
+plot(r_age,col=temp.colors2,axes=TRUE,,cex.axis=1.5,cex=3,
+     cex.lab=1.8,xlab="x (meter)",ylab="y (meter)",
+     #legend.shrink=0.9,legend.width=1.2,
+     axis.args = list(cex.axis = 1.6), #control size of legend z
+     legend.shrink=0.8,legend.width=0.8,
+     legend.args=list(text='AGE', side=4, line=2.49, cex=1.6))                
+                
 plot(mask_sp,add=T,lwd=0.6)
-title("(a) Age of burn scars",cex.main=1.5)
+title("(a) Age of burn scars",cex.main=2.5)
 scale_position<-c(450000, 600000)
 arrow_position<-c(900000, 600000)
                 
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
                    divs=3,label=label_scalebar,below="kilometers",
-                   cex=1.2)
+                   cex=1.6)
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                       scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
 
 legend("bottomright",legend=c("Albers Equal Area"),
-                       cex=0.95,bty="n")
+                       cex=1.6,bty="n")
                 
-                
-plot(r_PC2,col=temp.colors2,axes=TRUE,cex=3,,cex.axis=1.2,
-     cex.lab=1.2,xlab="x (meter)",ylab="y (meter)",
-     legend.shrink=0.9,legend.width=1.2,
-     legend.args=list(text='PC2', side=4, line=2.5, cex=1.2))
-
+plot(r_PC2,col=temp.colors2,axes=TRUE,cex=3,,cex.axis=1.5,
+     cex.lab=1.8,xlab="x (meter)",ylab="y (meter)",
+     legend.shrink=0.8,legend.width=0.8,
+     axis.args = list(cex.axis = 1.6), #control size of legend z
+     legend.args=list(text='PC2', side=4, line=2.49, cex=1.6))
+                                
 plot(mask_sp,add=T,lwd=0.6)
-title("(b) PC2 scores",cex.main=1.5)
+title("(b) PC2 scores",cex.main=2.5)
 #axes=FALSE to suppress the coordinates on plot
 #legend.with is set to increase the  width of the color palette
 scale_position<-c(450000, 600000)
@@ -1001,14 +1024,13 @@ arrow_position<-c(900000, 600000)
 label_scalebar<-c("0","125","250")
 scalebar(d=250000, xy=scale_position, type = 'bar', 
                    divs=3,label=label_scalebar,below="kilometers",
-                  cex=1.2)
+                  cex=1.6)
 #this work on non sp plot too
 SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
                         scale = 150000, fill=c("transparent","black"),plot.grid=FALSE)
 legend("bottomright",legend=c("Albers Equal Area"),
-                       cex=0.95,bty="n")
+                       cex=1.6,bty="n")
                 
-
 dev.off()
 
 ######################################
@@ -1016,7 +1038,7 @@ dev.off()
 #Figure 11. Average trends for all change and no-change areas (burned and unburned pixels) 
 #for the four variables that contribute the most to PC1: Note that with the exception of NDVI_A0, all Theil Sen slope increase in values in burned areas compared to unburned areas.
 
-res_pix <- 480*1
+res_pix <- 480*1.05
 col_mfrow<- 2
 row_mfrow<- 2
 m <- rbind(c(1, 2),c(3,4))
@@ -1043,7 +1065,7 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-0.02,0.01), 
-       xlab="BURNED",ylab="MEAN NDVI_A0")#,font=2)
+       xlab="BURNED",ylab="MEAN NDVI_A0",cex.lab=1.2)#,font=2)
 axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("a."),
@@ -1067,7 +1089,7 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-0.005,0.010), 
-       xlab="BOOLEAN SEVERITY",ylab="MEAN ALB_A0")#,font=2)
+       xlab="BURNED",ylab="MEAN ALB_A0",cex.lab=1.2)#,font=2)
 axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("b."),
@@ -1091,7 +1113,7 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(-0.005,0.010), 
-       xlab="BOOLEAN SEVERITY",ylab="MEAN ALB_A1")#,font=2)
+       xlab="BURNED",ylab="MEAN ALB_A1",cex.lab=1.2)#,font=2)
 axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("c."),
@@ -1115,7 +1137,7 @@ plotCI(x=c(0,1),y=means, uiw=ciw, col="black",
        #labels=round(means,-3), 
        xaxt="n", 
        xlim=c(-0.2,1.2),ylim=c(0.25,0.9), 
-       xlab="BOOLEAN SEVERITY",ylab="LST_A1")#,font=2)
+       xlab="BURNED",ylab="LST_A1",cex.lab=1.2)#,font=2)
 axis(side=1, at=c(0,1), labels=c(0,1), cex=1)
 lines(c(0,1),means)
 legend("bottomleft",legend=c("a."),
