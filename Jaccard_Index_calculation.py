@@ -15,10 +15,8 @@ wd= 'C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard
 
 api = win32com.client.Dispatch('idrisi32.IdrisiAPIServer')    # api is the handle for IDRISI api
 ##wd = api.GetWorkingDir();                                      #Is variable containing the path of the working directory
-                     
+              
                                                             #Note that the list is in a unicode format hence the u' before the string
-
-
 
 ##BREAKOUT  1*C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard_Index_Python\seg0_9_b_STDV_rd_092311_Chain_cluster__f8_7.rst*C:\Data\Benoit\Clark_University\Thesis_work_PhD\Dissertation_paper3\Jaccard_Index_Python\test*1
 parameters = '1*'+wd+inputf1+'*'+wd+inputf1+'*1'                          #Note that suffix "_bool_Class_1" will be added to category 1 and so on
